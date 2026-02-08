@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/nekolog.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NekoLog</title>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <a href="/THIRD-PARTY-NOTICES.txt" download="THIRD-PARTY-NOTICES.txt" class="license-link">Third Party Notices</a>
+  <style>
+    .license-link {
+      position: fixed;
+      bottom: 4px;
+      right: 8px;
+      font-size: 10px;
+      color: var(--ctp-overlay0, #6c7086);
+      text-decoration: none;
+      z-index: 9999;
+      font-family: 'JetBrains Mono', monospace;
+      opacity: 0.6;
+      transition: opacity 0.2s, color 0.2s;
+    }
+
+    .license-link:hover {
+      opacity: 1;
+      color: var(--ctp-text, #cdd6f4);
+    }
+  </style>
+
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>

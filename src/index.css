@@ -1,0 +1,138 @@
+/* JetBrains Mono - Local Fonts */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/JetBrainsMono-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/JetBrainsMono-Medium.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/JetBrainsMono-SemiBold.woff2') format('woff2');
+}
+@import "tailwindcss";
+
+:root {
+  font-family: 'JetBrains Mono', monospace;
+
+  /* Catppuccin Mocha Palette */
+  --ctp-rosewater: #f5e0dc;
+  --ctp-flamingo: #f2cdcd;
+  --ctp-pink: #f5c2e7;
+  --ctp-mauve: #cba6f7;
+  --ctp-red: #f38ba8;
+  --ctp-maroon: #eba0ac;
+  --ctp-peach: #fab387;
+  --ctp-yellow: #f9e2af;
+  --ctp-green: #a6e3a1;
+  --ctp-teal: #94e2d5;
+  --ctp-sky: #89dceb;
+  --ctp-sapphire: #74c7ec;
+  --ctp-blue: #89b4fa;
+  --ctp-lavender: #b4befe;
+  --ctp-text: #cdd6f4;
+  --ctp-subtext1: #bac2de;
+  --ctp-subtext0: #a6adc8;
+  --ctp-overlay2: #9399b2;
+  --ctp-overlay1: #7f849c;
+  --ctp-overlay0: #6c7086;
+  --ctp-surface2: #585b70;
+  --ctp-surface1: #45475a;
+  --ctp-surface0: #313244;
+  --ctp-base: #1e1e2e;
+  --ctp-mantle: #181825;
+  --ctp-crust: #11111b;
+
+  background-color: var(--ctp-base);
+  color: var(--ctp-text);
+}
+
+@theme {
+  --color-red-500: var(--ctp-red);
+  --color-yellow-500: var(--ctp-yellow);
+  --color-green-500: var(--ctp-green);
+  --color-blue-500: var(--ctp-blue);
+  --color-purple-500: var(--ctp-mauve);
+
+  /* Expose Catppuccin/Semantic colors as utilities */
+  --color-base: var(--ctp-base);
+  --color-mantle: var(--ctp-mantle);
+  --color-crust: var(--ctp-crust);
+  --color-surface0: var(--ctp-surface0);
+  --color-surface1: var(--ctp-surface1);
+  --color-surface2: var(--ctp-surface2);
+  --color-overlay0: var(--ctp-overlay0);
+  --color-overlay1: var(--ctp-overlay1);
+  --color-overlay2: var(--ctp-overlay2);
+  --color-text: var(--ctp-text);
+  --color-subtext0: var(--ctp-subtext0);
+  --color-subtext1: var(--ctp-subtext1);
+  --color-sapphire: var(--ctp-sapphire);
+  --color-lavender: var(--ctp-lavender);
+
+  --color-gray-700: var(--ctp-surface1);
+  --color-gray-600: var(--ctp-surface2);
+  --color-gray-500: var(--ctp-overlay0);
+  --color-gray-400: var(--ctp-overlay2);
+  --color-gray-300: var(--ctp-subtext0);
+  --color-gray-200: var(--ctp-subtext1);
+  --color-gray-100: var(--ctp-text);
+  --color-blue-400: var(--ctp-sapphire);
+}
+
+/* Custom Scrollbar */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ctp-surface2) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: var(--ctp-surface2);
+  border-radius: 20px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: var(--ctp-overlay0);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+/* Marquee animation for overflowing text - infinite one-direction scroll */
+@keyframes marquee-infinite {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(var(--scroll-distance));
+  }
+}
+
+.animate-marquee-infinite {
+  animation: marquee-infinite linear infinite;
+}
