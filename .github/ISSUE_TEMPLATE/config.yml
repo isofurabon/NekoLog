@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Documentation
+    url: https://github.com/user/NekoLog#readme
+    about: Check out the README for usage instructions and documentation
+  - name: 💬 Discussions
+    url: https://github.com/user/NekoLog/discussions
+    about: Ask questions and share ideas in GitHub Discussions

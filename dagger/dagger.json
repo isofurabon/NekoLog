@@ -1,0 +1,6 @@
+{
+    "name": "nekolog",
+    "engineVersion": "v0.19.11",
+    "sdk": "typescript",
+    "source": "."
+}
