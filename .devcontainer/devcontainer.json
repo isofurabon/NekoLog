@@ -1,0 +1,25 @@
+{
+    "name": "NekoLog (Dev)",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "remoteUser": "node", // Ensures the mount matches the user's home
+    "forwardPorts": [
+        5173
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "denoland.vscode-deno",
+                "esbenp.prettier-vscode"
+            ]
+        }
+    },
+    "mounts": [
+        // Added USERPROFILE for Windows compatibility + removed cached for stability
+        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.gitconfig,target=/home/node/.gitconfig,type=bind"
+    ],
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    }
+}

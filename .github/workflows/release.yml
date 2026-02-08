@@ -1,0 +1,53 @@
+name: Production Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers only on version tags (e.g., v1.0.0)
+
+permissions:
+  contents: write # REQUIRED: Allows the action to create a Release
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Binaries with Dagger
+        uses: dagger/dagger-for-github@v6
+        with:
+          version: "v0.19.11"
+          verb: call
+          args: -m dagger release --source=. export --path=./bin
+
+      - name: Display built artifacts
+        run: ls -la ./bin
+
+      - name: Compress Artifacts
+        working-directory: ./bin
+        run: |
+          mkdir -p ../release
+          zip "../release/nekolog-win.zip" "win/nekolog.exe"
+          tar -czvf "../release/nekolog-mac.tar.gz" "mac/nekolog"
+          tar -czvf "../release/nekolog-mac-arm.tar.gz" "mac-arm/nekolog"
+          tar -czvf "../release/nekolog-linux.tar.gz" "linux/nekolog"
+          ls -la ../release
+
+      - name: Generate Checksums (SHA256)
+        working-directory: ./release
+        run: |
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            ./release/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false
