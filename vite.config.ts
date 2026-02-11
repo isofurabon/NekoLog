@@ -51,7 +51,7 @@ export default defineConfig({
 function cspPlugin() {
   return {
     name: 'html-inject-csp',
-    transformIndexHtml(html: string, { server }: { server?: any }) {
+    transformIndexHtml(html: string, { server }: { server?: unknown }) {
       // If server exists, we are in dev mode (npm run dev / deno task dev)
       // We need to allow 'ws:' and 'wss:' for HMR
       const isDev = !!server;
