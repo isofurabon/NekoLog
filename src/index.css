@@ -153,10 +153,7 @@ body {
   z-index: 9999;
 }
 
-/* Override inline display:none once CSS is loaded (prevents FOUC) */
-.footer-links {
-  display: flex !important;
-}
+
 
 .footer-links:hover {
   opacity: 1;
