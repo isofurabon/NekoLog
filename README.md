@@ -57,6 +57,12 @@ browser**.
 
 ## 🚀 Getting Started
 
+### Web Application
+
+**[Open NekoLog](https://isofurabon.github.io/NekoLog/)**
+
+NekoLog is available as a Progressive Web App (PWA). You can use it directly in your browser without any installation.
+
 ### Standalone Binary (Recommended)
 
 **[Download](https://github.com/isofurabon/NekoLog/releases)**
