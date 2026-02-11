@@ -42,6 +42,20 @@ export class Nekolog {
     }
 
     /**
+     * Build the web application for deployment.
+     * Returns the dist directory containing the static site.
+     */
+    @func()
+    buildWeb(source: Directory, basePath = "/"): Directory {
+        const ctr = this.buildCiContainer(source)
+            .withEnvVariable("BASE_PATH", basePath)
+            .withExec(["deno", "install"])
+            .withExec(["deno", "task", "build"])
+
+        return ctr.directory("/src/dist")
+    }
+
+    /**
      * Run CI tasks (test and release).
      */
     @func()

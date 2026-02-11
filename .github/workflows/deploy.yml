@@ -24,21 +24,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
+      - name: Setup Dagger
+        uses: dagger/dagger-for-github@v6
         with:
-          deno-version: v2.x
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Install Dependencies
-        run: deno install
-
-      - name: Build
-        run: deno task build
-        env:
-          BASE_PATH: /NekoLog/
+          version: "v0.19.11"
+          verb: call
+          args: -m dagger build-web --source . --base-path /NekoLog/ -o ./dist
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
