@@ -21,4 +21,6 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // @ts-expect-error Deno global is not typed in standard Vite config
+  base: Deno.env.get("BASE_PATH") ?? "/",
 })
