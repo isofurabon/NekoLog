@@ -36,6 +36,7 @@ export default defineConfig({
         ]
       }
     }),
+    cspPlugin(),
   ],
   resolve: {
     alias: {
@@ -44,4 +45,31 @@ export default defineConfig({
   },
   // @ts-expect-error Deno global is not typed in standard Vite config
   base: Deno.env.get("BASE_PATH") ?? "/",
-})
+});
+
+// Simple Vite plugin to inject CSP meta tag
+function cspPlugin() {
+  return {
+    name: 'html-inject-csp',
+    transformIndexHtml(html: string, { server }: { server?: unknown }) {
+      // If server exists, we are in dev mode (npm run dev / deno task dev)
+      // We need to allow 'ws:' and 'wss:' for HMR
+      const isDev = !!server;
+
+      const cspDirectives = [
+        "default-src 'self'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        isDev ? "connect-src 'self' ws: wss:" : "connect-src 'self'", // Allow WS in dev
+        "img-src 'self' data:",
+        isDev ? "style-src 'self' 'unsafe-inline'" : "style-src 'self'",
+        isDev ? "script-src 'self' 'unsafe-inline'" : "script-src 'self'",
+        "object-src 'none'"
+      ];
+
+      const cspMeta = `<meta http-equiv="Content-Security-Policy" content="${cspDirectives.join('; ')}">`;
+
+      return html.replace('</head>', `${cspMeta}</head>`);
+    }
+  }
+}

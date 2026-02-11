@@ -35,6 +35,12 @@ function App() {
 
       <LogList />
 
+      {/* Footer Links */}
+      <div className="footer-links">
+        <a href="https://github.com/isofurabon/NekoLog" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <span className="separator">|</span>
+        <a href="THIRD-PARTY-NOTICES.txt" download="THIRD-PARTY-NOTICES.txt">Third Party Notices</a>
+      </div>
 
     </div>
   );
