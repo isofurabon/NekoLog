@@ -63,7 +63,7 @@ browser**.
 
 NekoLog is available as a Progressive Web App (PWA). You can use it directly in your browser without any installation.
 
-### Standalone Binary (Recommended)
+### Standalone Binary
 
 **[Download](https://github.com/isofurabon/NekoLog/releases)**
 
