@@ -60,6 +60,7 @@
         "@testing-library/jest-dom": "npm:@testing-library/jest-dom@^6.6.3",
         "@testing-library/user-event": "npm:@testing-library/user-event@^14.6.1",
         "@playwright/test": "npm:@playwright/test@^1.52.0",
+        "vite-plugin-pwa": "npm:vite-plugin-pwa@^0.21.1",
         "@types/node": "npm:@types/node@^24.10.1",
         "@types/react": "npm:@types/react@^19.2.5",
         "@types/react-dom": "npm:@types/react-dom@^19.2.3"
