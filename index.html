@@ -11,24 +11,39 @@
 <body>
   <div id="root"></div>
 
-  <a href="THIRD-PARTY-NOTICES.txt" download="THIRD-PARTY-NOTICES.txt" class="license-link">Third Party Notices</a>
+  <div class="footer-links">
+    <a href="https://github.com/isofurabon/NekoLog" target="_blank" rel="noopener noreferrer">GitHub</a>
+    <span class="separator">|</span>
+    <a href="THIRD-PARTY-NOTICES.txt" download="THIRD-PARTY-NOTICES.txt">Third Party Notices</a>
+  </div>
   <style>
-    .license-link {
+    .footer-links {
       position: fixed;
-      bottom: 4px;
+      bottom: 2px;
       right: 8px;
+      display: flex;
+      gap: 8px;
       font-size: 10px;
-      color: var(--ctp-overlay0, #6c7086);
-      text-decoration: none;
-      z-index: 9999;
       font-family: 'JetBrains Mono', monospace;
+      color: var(--ctp-overlay0, #6c7086);
       opacity: 0.6;
-      transition: opacity 0.2s, color 0.2s;
+      transition: opacity 0.2s;
+      z-index: 9999;
     }
 
-    .license-link:hover {
+    .footer-links:hover {
       opacity: 1;
+    }
+
+    .footer-links a {
+      color: inherit;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
       color: var(--ctp-text, #cdd6f4);
+      text-decoration: underline;
     }
   </style>
 
