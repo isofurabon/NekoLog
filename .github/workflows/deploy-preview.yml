@@ -1,0 +1,32 @@
+name: Deploy Preview
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  id-token: write # Required for Deno Deploy authentication
+  contents: read
+  pull-requests: write # Required to comment on PRs
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Build with Dagger
+        uses: dagger/dagger-for-github@v7
+        with:
+          version: "v0.19.11"
+          verb: call
+          args: -m dagger build-web --source . --base-path / -o ./dist
+
+      - name: Deploy to Deno Deploy
+        uses: denoland/deployctl@v1
+        with:
+          project: "nekolog"
+          entrypoint: "dist" # Vite build output directory
+          root: "."
