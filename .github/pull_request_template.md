@@ -38,7 +38,6 @@ Fixes #
 - [ ] Unit tests pass (`deno task test`)
 - [ ] E2E tests pass (`deno task test:e2e`)
 - [ ] Lint checks pass (`deno task lint`)
-- [ ] Type checks pass (`deno task typecheck`)
 - [ ] Manual testing performed
 
 ## Checklist

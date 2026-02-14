@@ -11,8 +11,8 @@
         "test": "deno task lint && deno task test:unit && deno task build",
         "test:unit": "deno run -A vitest run",
         "test:watch": "deno run -A vitest",
-        "test:e2e": "npx playwright test",
-        "test:e2e:ui": "npx playwright test --ui",
+        "test:e2e": "deno run -A npm:@playwright/test@^1.52.0 test",
+        "test:e2e:ui": "deno run -A npm:@playwright/test@^1.52.0 test --ui",
         "test:all": "deno task test:unit && deno task test:e2e",
         "lint": "deno lint",
         "compile": "deno compile --allow-read --allow-env --allow-run --allow-sys --allow-net=0.0.0.0,127.0.0.1,localhost --include dist --output bin/nekolog server.ts",
@@ -63,7 +63,8 @@
         "vite-plugin-pwa": "npm:vite-plugin-pwa@^0.21.1",
         "@types/node": "npm:@types/node@^24.10.1",
         "@types/react": "npm:@types/react@^19.2.5",
-        "@types/react-dom": "npm:@types/react-dom@^19.2.3"
+        "@types/react-dom": "npm:@types/react-dom@^19.2.3",
+        "@std/path": "jsr:@std/path@^1.0.8"
     },
     "compilerOptions": {
         "jsx": "react-jsx",

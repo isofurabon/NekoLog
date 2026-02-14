@@ -10,6 +10,7 @@ export class Nekolog {
             .dockerBuild({ dockerfile: ".devcontainer/Dockerfile" })
             .withDirectory("/src", source)
             .withWorkdir("/src")
+            .withEnvVariable("CI", "true")
     }
 
 
