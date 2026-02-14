@@ -25,11 +25,8 @@ jobs:
           args: -m dagger build-web --source . --base-path / -o ./dist
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
 
-      - name: Deploy to Deno Deploy
-        uses: denoland/deployctl@v1
-        with:
-          project: "nekolog"
-          entrypoint: "dist" # Vite build output directory
-          root: "."
-        env: 
+      - name: Deploy to Deno Deploy (Preview)
+        env:
           DENO_DEPLOY_TOKEN: ${{ secrets.DENO_DEPLOY_TOKEN }}
+        run: |
+          deno deploy --project=nekolog --exclude=node_modules --static-dir=dist .
