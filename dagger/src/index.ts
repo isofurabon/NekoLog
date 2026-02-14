@@ -67,8 +67,8 @@ export class Nekolog {
             .withExec(["deno", "task", "build"])
             .withExec([
                 "deno", "deploy",
-                "--project=nekolog",
-                "--exclude=node_modules",
+                "--org=isofurabon",
+                "--app=nekolog",
                 "--static-dir=dist",
                 "."
             ])
