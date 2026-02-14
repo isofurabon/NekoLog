@@ -31,3 +31,5 @@ jobs:
           project: "nekolog"
           entrypoint: "dist" # Vite build output directory
           root: "."
+        env: 
+          DENO_DEPLOY_TOKEN: ${{ secrets.DENO_DEPLOY_TOKEN }}
