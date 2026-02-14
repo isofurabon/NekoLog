@@ -1,23 +1,25 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useLogWorker } from '@/hooks/useLogWorker';
 import { logsAtom } from '@/store';
-import { useAtomValue, Provider, createStore } from 'jotai';
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { Provider, createStore } from 'jotai';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 // Mock Worker
 class MockWorker {
     onmessage: ((event: MessageEvent) => void) | null = null;
-    postMessage(message: any) { }
+    postMessage(_message: unknown) { }
     terminate() {}
 }
 
-const OriginalWorker = global.Worker;
+// deno-lint-ignore no-explicit-any
+const OriginalWorker = (globalThis as any).Worker;
 
 describe('useLogWorker Performance Benchmark', () => {
     let workerInstance: MockWorker;
 
     beforeEach(() => {
-        (global as any).Worker = class extends MockWorker {
+        // deno-lint-ignore no-explicit-any
+        (globalThis as any).Worker = class extends MockWorker {
             constructor() {
                 super();
                 workerInstance = this;
@@ -26,7 +28,8 @@ describe('useLogWorker Performance Benchmark', () => {
     });
 
     afterEach(() => {
-        (global as any).Worker = OriginalWorker;
+        // deno-lint-ignore no-explicit-any
+        (globalThis as any).Worker = OriginalWorker;
     });
 
     it('measures time to process updates with large initial state', async () => {
@@ -41,7 +44,7 @@ describe('useLogWorker Performance Benchmark', () => {
             <Provider store={store}>{children}</Provider>
         );
 
-        const { result, unmount } = renderHook(() => useLogWorker(), { wrapper });
+        const { unmount } = renderHook(() => useLogWorker(), { wrapper });
 
         expect(workerInstance).toBeDefined();
 
@@ -50,7 +53,7 @@ describe('useLogWorker Performance Benchmark', () => {
 
         const startTime = performance.now();
 
-        await act(async () => {
+        await act(() => {
             for (let i = 0; i < updateCount; i++) {
                 if (workerInstance.onmessage) {
                     workerInstance.onmessage({

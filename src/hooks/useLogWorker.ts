@@ -28,11 +28,16 @@ export function useLogWorker() {
         workerRef.current.onmessage = (event: MessageEvent<WorkerResponse>) => {
             const { type, payload } = event.data;
             if (type === 'NEW_LOGS') {
-                pendingLogsRef.current.push(...payload);
+                // Use loop to push to avoid stack overflow with spread and copying overhead of concat
+                const logs = payload;
+                for (let i = 0; i < logs.length; i++) {
+                    pendingLogsRef.current.push(logs[i]);
+                }
 
                 if (!flushTimeoutRef.current) {
                     // Batch updates to avoid O(N^2) behavior on rapid updates
-                    flushTimeoutRef.current = window.setTimeout(flush, 50);
+                    // cast to unknown then number to avoid type mismatch if @types/node is present
+                    flushTimeoutRef.current = setTimeout(flush, 50) as unknown as number;
                 }
             }
         };
