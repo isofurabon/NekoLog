@@ -22,8 +22,7 @@
         "compile:linux": "deno compile --allow-read --allow-env --allow-run --allow-sys --allow-net=0.0.0.0,127.0.0.1,localhost --include dist --output bin/linux/nekolog --target x86_64-unknown-linux-gnu server.ts",
         "compile:all": "deno task compile:win && deno task compile:mac && deno task compile:mac-arm && deno task compile:linux",
         "ci": "dagger call -m dagger ci --source .",
-        "storybook": "deno run -A npm:storybook@^8.5.3 dev -p 6006",
-        "build-storybook": "deno run -A npm:storybook@^8.5.3 build"
+        "storybook": "deno run -A npm:storybook@^8.5.3 dev -p 6006"
     },
     "imports": {
         "@/components/": "./src/components/",
