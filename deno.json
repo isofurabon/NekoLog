@@ -21,7 +21,9 @@
         "compile:mac-arm": "deno compile --allow-read --allow-env --allow-run --allow-sys --allow-net=0.0.0.0,127.0.0.1,localhost --include dist --output bin/mac-arm/nekolog --target aarch64-apple-darwin server.ts",
         "compile:linux": "deno compile --allow-read --allow-env --allow-run --allow-sys --allow-net=0.0.0.0,127.0.0.1,localhost --include dist --output bin/linux/nekolog --target x86_64-unknown-linux-gnu server.ts",
         "compile:all": "deno task compile:win && deno task compile:mac && deno task compile:mac-arm && deno task compile:linux",
-        "ci": "dagger call -m dagger ci --source ."
+        "ci": "dagger call -m dagger ci --source .",
+        "storybook": "deno run -A npm:storybook@^8.5.3 dev -p 6006",
+        "build-storybook": "deno run -A npm:storybook@^8.5.3 build"
     },
     "imports": {
         "@/components/": "./src/components/",
@@ -64,7 +66,14 @@
         "@types/node": "npm:@types/node@^24.10.1",
         "@types/react": "npm:@types/react@^19.2.5",
         "@types/react-dom": "npm:@types/react-dom@^19.2.3",
-        "@std/path": "jsr:@std/path@^1.0.8"
+        "@std/path": "jsr:@std/path@^1.0.8",
+        "storybook": "npm:storybook@^8.5.3",
+        "@storybook/react": "npm:@storybook/react@^8.5.3",
+        "@storybook/react-vite": "npm:@storybook/react-vite@^8.5.3",
+        "@storybook/addon-essentials": "npm:@storybook/addon-essentials@^8.5.3",
+        "@storybook/addon-interactions": "npm:@storybook/addon-interactions@^8.5.3",
+        "@storybook/blocks": "npm:@storybook/blocks@^8.5.3",
+        "@storybook/test": "npm:@storybook/test@^8.5.3"
     },
     "compilerOptions": {
         "jsx": "react-jsx",
