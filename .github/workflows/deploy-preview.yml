@@ -23,6 +23,7 @@ jobs:
           version: "v0.19.11"
           verb: call
           args: -m dagger build-web --source . --base-path / -o ./dist
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
 
       - name: Deploy to Deno Deploy
         uses: denoland/deployctl@v1
