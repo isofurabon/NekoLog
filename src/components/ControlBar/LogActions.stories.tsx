@@ -2,9 +2,9 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { Provider } from 'jotai';
 import { useHydrateAtoms } from 'jotai/utils';
 import { LogActions } from './LogActions';
-import { autoScrollAtom, logsAtom } from '@/store';
-// import { fn } from '@storybook/test'; // If available
+import { autoScrollAtom } from '@/store';
 
+// deno-lint-ignore no-explicit-any
 const HydrateAtoms = ({ initialValues, children }: { initialValues: any; children: React.ReactNode }) => {
     useHydrateAtoms(initialValues);
     return <>{children}</>;

@@ -6,6 +6,7 @@ import { logsAtom, autoScrollAtom } from '@/store';
 import type { LogEntry } from '@/types';
 
 // Helper to hydrate atoms
+// deno-lint-ignore no-explicit-any
 const HydrateAtoms = ({ initialValues, children }: { initialValues: any; children: React.ReactNode }) => {
     useHydrateAtoms(initialValues);
     return <>{children}</>;
@@ -63,7 +64,7 @@ export const WithLogs: Story = {
     decorators: [
         (Story) => (
             <Provider>
-                <HydrateAtoms initialValues={[[logsAtom, shortLogs]]}>
+                <HydrateAtoms initialValues={[[logsAtom, shortLogs]] as const}>
                     <Story />
                 </HydrateAtoms>
             </Provider>
@@ -75,7 +76,7 @@ export const ManyLogs: Story = {
     decorators: [
         (Story) => (
             <Provider>
-                <HydrateAtoms initialValues={[[logsAtom, longLogs]]}>
+                <HydrateAtoms initialValues={[[logsAtom, longLogs]] as const}>
                     <Story />
                 </HydrateAtoms>
             </Provider>
@@ -87,7 +88,7 @@ export const AutoScrollOff: Story = {
     decorators: [
         (Story) => (
             <Provider>
-                <HydrateAtoms initialValues={[[logsAtom, longLogs], [autoScrollAtom, false]]}>
+                <HydrateAtoms initialValues={[[logsAtom, longLogs], [autoScrollAtom, false]] as const}>
                     <Story />
                 </HydrateAtoms>
             </Provider>

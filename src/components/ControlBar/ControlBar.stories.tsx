@@ -1,13 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Provider } from 'jotai';
-import { useHydrateAtoms } from 'jotai/utils';
 import { ControlBar } from './ControlBar';
-import { logsAtom, isRecordingAtom } from '@/store';
-
-const HydrateAtoms = ({ initialValues, children }: { initialValues: any; children: React.ReactNode }) => {
-    useHydrateAtoms(initialValues);
-    return <>{children}</>;
-};
 
 const meta = {
     title: 'ControlBar/ControlBar',

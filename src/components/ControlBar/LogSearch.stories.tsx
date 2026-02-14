@@ -2,9 +2,10 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { Provider } from 'jotai';
 import { useHydrateAtoms } from 'jotai/utils';
 import { LogSearch } from './LogSearch';
-import { filterTextAtom, includedFieldsAtom } from '@/store';
+import { filterTextAtom } from '@/store';
 import React from 'react';
 
+// deno-lint-ignore no-explicit-any
 const HydrateAtoms = ({ initialValues, children }: { initialValues: any; children: React.ReactNode }) => {
     useHydrateAtoms(initialValues);
     return <>{children}</>;
@@ -36,6 +37,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
     args: {
         onClose: () => console.log('Close search'),
+        // deno-lint-ignore no-explicit-any
         inputRef: { current: null } as any, // Mocked in render
     },
     decorators: [
@@ -50,6 +52,7 @@ export const Default: Story = {
 export const WithFilterText: Story = {
     args: {
         onClose: () => console.log('Close search'),
+        // deno-lint-ignore no-explicit-any
         inputRef: { current: null } as any,
     },
     decorators: [
