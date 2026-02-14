@@ -1,32 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { LogLevel } from '@/types';
-
-// Parse logic extracted for testing (since worker uses self.onmessage)
-const LOG_REGEX = /^(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\.\d{3})\s+(\d+)\s+(\d+)\s+([VDIWEF])\s+(.*?):\s+(.*)$/;
-
-interface ParsedLog {
-    timestamp: string;
-    pid: string;
-    tid: string;
-    level: LogLevel;
-    tag: string;
-    message: string;
-}
-
-function parseLine(line: string): ParsedLog | null {
-    const match = line.match(LOG_REGEX);
-    if (!match) return null;
-
-    const [, timestamp, pid, tid, level, tag, message] = match;
-    return {
-        timestamp,
-        pid,
-        tid,
-        level: level as LogLevel,
-        tag: tag.trim(),
-        message: message.trim(),
-    };
-}
+import { parseLogLine, LOG_REGEX } from './parser';
 
 describe('Log Parser', () => {
     describe('LOG_REGEX', () => {
@@ -50,10 +23,10 @@ describe('Log Parser', () => {
         });
     });
 
-    describe('parseLine', () => {
+    describe('parseLogLine', () => {
         it('extracts all fields correctly', () => {
             const line = '01-15 10:30:45.123  1234  5678 I ActivityManager: Starting activity';
-            const result = parseLine(line);
+            const result = parseLogLine(line);
 
             expect(result).toEqual({
                 timestamp: '01-15 10:30:45.123',
@@ -67,36 +40,52 @@ describe('Log Parser', () => {
 
         it('handles tags with special characters', () => {
             const line = '01-15 10:30:45.123  1234  5678 D My.Package.Tag: Some message';
-            const result = parseLine(line);
+            const result = parseLogLine(line);
 
             expect(result?.tag).toBe('My.Package.Tag');
         });
 
         it('preserves message content with colons', () => {
             const line = '01-15 10:30:45.123  1234  5678 W Logger: Error: something went wrong';
-            const result = parseLine(line);
+            const result = parseLogLine(line);
 
             expect(result?.message).toBe('Error: something went wrong');
         });
 
         it('handles high PIDs and TIDs', () => {
             const line = '01-15 10:30:45.123 99999 88888 E Crash: Fatal error';
-            const result = parseLine(line);
+            const result = parseLogLine(line);
 
             expect(result?.pid).toBe('99999');
             expect(result?.tid).toBe('88888');
         });
 
-        it('returns null for malformed lines', () => {
-            expect(parseLine('not a log line')).toBeNull();
-            expect(parseLine('')).toBeNull();
+        it('returns null for empty lines', () => {
+            expect(parseLogLine('')).toBeNull();
+            expect(parseLogLine('   ')).toBeNull();
         });
 
-        it('handles messages with leading/trailing whitespace', () => {
-            const line = '01-15 10:30:45.123  1234  5678 I Tag:   spaced message  ';
-            const result = parseLine(line);
+        it('returns fallback entry for malformed lines', () => {
+            const line = 'Some random stack trace or malformed log';
+            const result = parseLogLine(line);
 
-            expect(result?.message).toBe('spaced message');
+            expect(result).not.toBeNull();
+            expect(result?.level).toBe('I');
+            expect(result?.tag).toBe('System');
+            expect(result?.message).toBe(line);
+            expect(result?.pid).toBe('?');
+            expect(result?.tid).toBe('?');
+
+            // Verify timestamp matches format "MM-DD HH:mm:ss.mmm"
+            expect(result?.timestamp).toMatch(/^\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\.\d{3}$/);
+        });
+
+        it('handles messages with leading/trailing whitespace in fallback', () => {
+            const line = '   some error   ';
+            const result = parseLogLine(line);
+
+            // parseLogLine returns the original line as message for fallback
+            expect(result?.message).toBe('   some error   ');
         });
     });
 });
