@@ -1,4 +1,4 @@
-import { Directory, object, func } from "@dagger.io/dagger"
+import { Directory, object, func, Secret } from "@dagger.io/dagger"
 
 @object()
 export class Nekolog {
@@ -54,6 +54,26 @@ export class Nekolog {
             .withExec(["deno", "task", "build"])
 
         return ctr.directory("/src/dist")
+    }
+
+    /**
+     * Deploy the application to Deno Deploy.
+     */
+    @func()
+    async deploy(source: Directory, token: Secret): Promise<string> {
+        const ctr = this.buildCiContainer(source)
+            .withSecretVariable("DENO_DEPLOY_TOKEN", token)
+            .withExec(["deno", "install"])
+            .withExec(["deno", "task", "build"])
+            .withExec([
+                "deno", "deploy",
+                "--project=nekolog",
+                "--exclude=node_modules",
+                "--static-dir=dist",
+                "."
+            ])
+
+        return await ctr.stdout()
     }
 
     /**
