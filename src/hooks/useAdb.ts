@@ -1,3 +1,4 @@
+/// <reference types="@types/w3c-web-usb" />
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AdbDaemonWebUsbDeviceManager } from '@yume-chan/adb-daemon-webusb';
 import { Adb, AdbDaemonTransport } from '@yume-chan/adb';
@@ -40,9 +41,7 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
             setDeviceName(null);
         };
 
-        // WebUSB types aren't in default TypeScript lib
-        // deno-lint-ignore no-explicit-any
-        const usb = (navigator as any).usb as EventTarget | undefined;
+        const usb = navigator.usb;
         if (!usb) return;
 
         usb.addEventListener('disconnect', handleDisconnect);
