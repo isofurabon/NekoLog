@@ -69,7 +69,6 @@ export class Nekolog {
                 "deno", "deploy",
                 "--org=isofurabon",
                 "--app=nekolog",
-                "--static-dir=dist",
                 "."
             ])
 
