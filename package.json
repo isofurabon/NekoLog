@@ -1,0 +1,4 @@
+{
+    "_comment": "This file is needed for Storybook to work correctly with Deno, preventing it from auto-generating one. It is intentionally minimal.",
+    "private": true
+}
