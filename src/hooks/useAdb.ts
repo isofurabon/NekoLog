@@ -124,9 +124,9 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
         setIsConnected(true);
         setDeviceName('Neko Mock Device');
 
+        const encoder = new TextEncoder();
         const runMock = () => {
             const log = generateMockLog();
-            const encoder = new TextEncoder();
             const encoded = encoder.encode(log);
             onData(encoded.buffer);
 
