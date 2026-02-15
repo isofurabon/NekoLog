@@ -30,9 +30,21 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
     // Handle Resize to trigger redraw
     useEffect(() => {
         if (!containerRef.current) return;
-        const observer = new ResizeObserver(() => setTick(t => t + 1));
+
+        let animationFrameId: number;
+        const observer = new ResizeObserver(() => {
+            // Throttle resize updates to animation frames
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = requestAnimationFrame(() => {
+                setTick(t => t + 1);
+            });
+        });
+
         observer.observe(containerRef.current);
-        return () => observer.disconnect();
+        return () => {
+            observer.disconnect();
+            cancelAnimationFrame(animationFrameId);
+        };
     }, []);
 
     // Draw the minimap — pure index-based coordinate system
@@ -77,6 +89,7 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
         if (!scrollElement || logs.length === 0 || !containerRef.current) return;
         const minimapHeight = containerRef.current.clientHeight;
 
+        // Virtualizer items might be empty during initial render or rapid changes
         const items = virtualizer.getVirtualItems();
         if (items.length === 0) return;
 
@@ -92,15 +105,18 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
             top,
             height: Math.max(bottom - top, 4),
         });
-    }, [scrollElement, logs.length, virtualizer]);
+    }, [scrollElement, logs.length, virtualizer, virtualizer.getVirtualItems()]); // Depend on getVirtualItems() result indirectly via virtualizer state changes
 
     useEffect(() => {
         if (!scrollElement) return;
         const onScroll = () => requestAnimationFrame(updateViewport);
         scrollElement.addEventListener('scroll', onScroll);
+
+        // Also update when virtual rules change (e.g. range changes due to window resize or data update)
         updateViewport();
+
         return () => scrollElement.removeEventListener('scroll', onScroll);
-    }, [scrollElement, updateViewport, totalSize, tick]);
+    }, [scrollElement, updateViewport, totalSize, tick, virtualizer.isScrolling]); // Add virtualizer.isScrolling to force updates during rapid scrolling
 
     // Click / drag to scroll — reverse-map from minimap coordinate to item index
     const handleMouseDown = (e: React.MouseEvent) => {
