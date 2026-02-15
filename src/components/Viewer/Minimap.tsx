@@ -160,7 +160,7 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
             ref={containerRef}
             className={`
                 absolute right-0 top-0 bottom-0 z-20
-                transition-all duration-200 ease-in-out
+                transition-all duration-200 ease-out
                 bg-base/80 border-l border-white/5 backdrop-blur-sm
                 ${isHovering ? 'w-24 opacity-100 shadow-xl' : 'w-2.5 opacity-60'}
             `}
