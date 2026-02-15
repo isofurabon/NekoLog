@@ -149,6 +149,12 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
         globalThis.addEventListener('mouseup', onUp);
     };
 
+    const handleWheel = (e: React.WheelEvent) => {
+        if (!scrollElement) return;
+        // Pass the wheel event delta directly to the scroll element
+        scrollElement.scrollTop += e.deltaY;
+    };
+
     return (
         <div
             ref={containerRef}
@@ -161,6 +167,7 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
             onMouseDown={handleMouseDown}
+            onWheel={handleWheel}
             style={{ cursor: 'pointer' }}
         >
             <canvas
