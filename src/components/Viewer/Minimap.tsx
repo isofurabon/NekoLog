@@ -177,7 +177,7 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
 
             {/* Viewport Indicator */}
             <div
-                className="absolute left-0 w-full bg-white/20 border-y border-white/40 pointer-events-none transition-all duration-75"
+                className="absolute left-0 w-full bg-white/40 border-y border-white/60 pointer-events-none transition-all duration-75"
                 style={{
                     top: viewportState.top,
                     height: viewportState.height,
