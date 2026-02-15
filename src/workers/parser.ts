@@ -5,7 +5,10 @@ const decoder = new TextDecoder();
 
 // Standard `threadtime` format regex
 // Date Time PID TID Level Tag: Message
-export const LOG_REGEX = /^(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\.\d{3})\s+(\d+)\s+(\d+)\s+([VDIWEF])\s+(.*?):\s+(.*)$/;
+// Supports "PID TID", "PID/TID", "PID/ TID" etc.
+export const LOG_REGEX = /^(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\.\d{3})\s+([0-9?]+)(?:[\/\s]+)([0-9?]+)\s+([VDIWEF])\s+(.*?):\s+(.*)$/;
+
+
 
 export function parseLogLine(line: string): Omit<LogEntry, 'id'> | null {
     if (!line.trim()) return null;

@@ -1,17 +1,19 @@
 import { test, expect } from '@playwright/test';
 
-
 test.describe('Drag & Drop Log File', () => {
-    test('should open log file when dropped', async ({ page }) => {
+    test('should disconnect mock mode and open log file when dropped', async ({ page }) => {
         await page.goto('/');
 
+        // Start Mock Mode first
+        const startMockBtn = page.getByText('Start Demo Mode');
+        await startMockBtn.click();
+        await expect(page.getByText('Neko Mock Device')).toBeVisible();
 
-        const logContent = `01-15 10:30:45.123  1234  5678 I ActivityManager: Starting activity
-01-15 10:30:45.124  1234  5678 D TestTag: This is a debug message
-01-15 10:30:45.125  1234  5678 E ErrorTag: Something went wrong`;
+        // Prepare file content with PID/TID format
+        const logContent = `02-15 16:03:56.424  1138/ 1163 I ThermalService: Sensor Name:usbport temp:26.467
+02-15 07:03:56.669     ?/    ? I Raw: --------- beginning of main`;
 
-        // Create a DataTransfer object and simulate drop
-        // We need to target the main container
+        // Drop file
         const dataTransfer = await page.evaluateHandle((data) => {
             const dt = new DataTransfer();
             const file = new File([data], 'sample.log', { type: 'text/plain' });
@@ -21,28 +23,25 @@ test.describe('Drag & Drop Log File', () => {
 
         await page.dispatchEvent('.bg-base', 'drop', { dataTransfer });
 
-        // Verify file name is shown in Control Bar
+        // Verify Mock Mode is disconnected
+        await expect(page.getByText('Neko Mock Device')).not.toBeVisible();
+
+        // Verify file loaded and parsed correctly
         await expect(page.getByText('sample.log')).toBeVisible();
+        await expect(page.getByText('ThermalService')).toBeVisible();
+        await expect(page.getByText('Sensor Name:usbport')).toBeVisible();
+        await expect(page.getByText('beginning of main')).toBeVisible();
 
-        // Verify logs are displayed
-        await expect(page.getByText('ActivityManager')).toBeVisible();
-        await expect(page.getByText('This is a debug message')).toBeVisible();
-        await expect(page.getByText('Something went wrong')).toBeVisible();
+        // Verify "Click to filter" hint on hover
+        await page.getByTestId('control-bar-container').hover();
+        await expect(page.getByText('Click to filter').first()).toBeVisible();
 
-        // Verify "File Mode" state
-        // "Start Demo Mode" should NOT be visible (or Connect button behavior)
-        // The "Trash" icon should be visible on hover
-        await page.getByTestId('control-bar-container').hover(); // Hover over control bar container
+        // Cleanup: Click Trash
 
-        const trashIcon = page.getByTitle('Clear Logs'); // Assuming title is "Clear Logs"
-        // await expect(trashIcon).toBeVisible(); // Skip visibility check if hover is flaky
-
-        // Click Trash to request clear/reset
+        const trashIcon = page.getByTitle('Clear Logs');
         await trashIcon.click({ force: true });
-
 
         // Verify state reset
         await expect(page.getByText('sample.log')).not.toBeVisible();
-        await expect(page.getByText('Click to connect').first()).toBeVisible();
     });
 });

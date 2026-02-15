@@ -13,7 +13,8 @@ import { useCallback, useState } from 'react';
 function App() {
   const { addChunk, clearLogs, flushLogs } = useLogWorker();
 
-  const { connect, isConnected, deviceName, startMock } = useAdb(addChunk);
+  const { connect, disconnect, isConnected, deviceName, startMock } = useAdb(addChunk);
+
 
   const [isDragging, setIsDragging] = useState(false);
   const [isViewingFile, setIsViewingFile] = useAtom(isViewingFileAtom);
@@ -35,8 +36,14 @@ function App() {
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
+    // If connected (ADB or Mock), disconnect first
+    if (isConnected) {
+      disconnect();
+    }
+
 
     e.preventDefault();
+
     setIsDragging(false);
 
     const files = e.dataTransfer.files;

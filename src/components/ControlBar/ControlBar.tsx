@@ -155,19 +155,49 @@ export const ControlBar = ({
                             // If expandable (search open), show search. If collapsed, show file info.
                             // User requirement: "you don't need to show the filename when expanding the control bar (during filter input)"
                             !isExpanded ? (
-                                <motion.div
-                                    key="file-mode-info"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="flex items-center gap-2 justify-center w-full"
-                                    onClick={toggleExpand}
-                                >
-                                    <FileText size={14} className="text-blue-400 shrink-0" />
-                                    <span className="text-sm font-medium text-blue-100 truncate max-w-[400px]">
-                                        {currentFileName}
-                                    </span>
-                                </motion.div>
+                                <div className="relative w-full h-full flex items-center justify-center">
+                                    <motion.div
+                                        key="file-mode-info"
+                                        initial={{ opacity: 0 }}
+                                        animate={{
+                                            opacity: isHovered ? 0 : 1,
+                                            y: isHovered ? -10 : 0
+                                        }}
+                                        exit={{ opacity: 0 }}
+                                        className="flex items-center gap-2 justify-center w-full cursor-pointer"
+                                        onClick={toggleExpand}
+                                    >
+                                        <FileText size={14} className="text-blue-400 shrink-0" />
+                                        <span className="text-sm font-medium text-blue-100 truncate max-w-[400px]">
+                                            {currentFileName}
+                                        </span>
+                                    </motion.div>
+
+                                    <AnimatePresence>
+                                        {isHovered && (
+                                            <motion.div
+                                                key="hint-overlay"
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: 10 }}
+                                                className="absolute inset-0 flex items-center justify-center pointer-events-none px-4"
+                                            >
+
+                                                <div className="flex items-center gap-2 w-full">
+                                                    <Search size={14} className="text-gray-300 shrink-0" strokeWidth={3} />
+                                                    <div className="min-w-0 flex-1 overflow-hidden">
+                                                        <MarqueeText
+                                                            text="Click to filter"
+                                                            isHovered={isHovered}
+                                                            className="text-sm font-medium text-gray-300"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+
                             ) : (
                                 <motion.div
                                     key="file-mode-search"
@@ -205,6 +235,7 @@ export const ControlBar = ({
                                 <AnimatePresence>
                                     {isHovered && (
                                         <motion.div
+                                            key="hint-overlay"
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, y: 10 }}
