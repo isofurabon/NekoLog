@@ -154,6 +154,16 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
                 // If authentication timed out, forcibly close and bail
                 if (errorMessage.includes('timed out')) {
                     try { await device.raw.close(); } catch { /* ignore */ }
+
+                    // Reset all state to ensure clean retry
+                    deviceRef.current = null;
+                    setDevice(null);
+                    setIsConnected(false);
+                    setDeviceName(null);
+
+                    // abortControllerRef is already null here (cleared at start of connect)
+                    // so no need to abort it.
+
                     alert(errorMessage);
                     return;
                 }
