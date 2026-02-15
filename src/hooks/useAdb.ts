@@ -118,16 +118,23 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
         if (!device) return;
 
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            let connection: Awaited<ReturnType<typeof device.connect>> | null = null;
             try {
-                const connection = await device.connect();
+                connection = await device.connect();
 
-                // Authenticate using AdbDaemonTransport
-                // serial is required, fall back to "unknown" if missing (WebUSB device usually has it)
-                const transport = await AdbDaemonTransport.authenticate({
-                    serial: device.serial || 'unknown',
-                    connection,
-                    credentialStore: CredentialStore.current,
-                });
+                // Authenticate using AdbDaemonTransport with timeout
+                // Authentication can hang if the device is unresponsive
+                const AUTH_TIMEOUT_MS = 10_000;
+                const transport = await Promise.race([
+                    AdbDaemonTransport.authenticate({
+                        serial: device.serial || 'unknown',
+                        connection,
+                        credentialStore: CredentialStore.current,
+                    }),
+                    new Promise<never>((_, reject) =>
+                        setTimeout(() => reject(new Error('Authentication timed out. Please check the device screen for an authorization prompt and try again.')), AUTH_TIMEOUT_MS)
+                    ),
+                ]);
 
                 const adb = new Adb(transport);
 
@@ -143,6 +150,13 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
             } catch (e) {
                 const errorMessage = (e as Error).message;
                 console.error(`ADB Connect Error (attempt ${attempt}/${MAX_RETRIES}):`, e);
+
+                // If authentication timed out, forcibly close and bail
+                if (errorMessage.includes('timed out')) {
+                    try { await device.raw.close(); } catch { /* ignore */ }
+                    alert(errorMessage);
+                    return;
+                }
 
                 // If the device was disconnected, we can't retry with the same reference
                 if (errorMessage.includes('disconnected')) {
