@@ -58,12 +58,18 @@ export const ControlBar = ({
         return () => globalThis.removeEventListener('keydown', handleGlobalKeyDown);
     }, [isExpanded, isConnected, isViewingFile]);
 
-    const toggleExpand = () => {
+    const toggleExpand = (e?: React.MouseEvent) => {
+        // console.log("Toggle Expand Clicked");
+        e?.stopPropagation();
+        e?.preventDefault();
         if (!isExpanded) {
+
+
             setIsExpanded(true);
             setTimeout(() => inputRef.current?.focus(), 100);
         }
     };
+
 
     const handleCloseSearch = () => {
         setIsExpanded(false);
@@ -155,7 +161,11 @@ export const ControlBar = ({
                             // If expandable (search open), show search. If collapsed, show file info.
                             // User requirement: "you don't need to show the filename when expanding the control bar (during filter input)"
                             !isExpanded ? (
-                                <div className="relative w-full h-full flex items-center justify-center">
+                                <div
+                                    className="relative w-full h-full flex items-center justify-center cursor-pointer"
+                                    onClick={toggleExpand}
+                                    data-testid="file-mode-click-area"
+                                >
                                     <motion.div
                                         key="file-mode-info"
                                         initial={{ opacity: 0 }}
@@ -164,10 +174,10 @@ export const ControlBar = ({
                                             y: isHovered ? -10 : 0
                                         }}
                                         exit={{ opacity: 0 }}
-                                        className="flex items-center gap-2 justify-center w-full cursor-pointer"
-                                        onClick={toggleExpand}
+                                        className="flex items-center gap-2 justify-center w-full"
                                     >
                                         <FileText size={14} className="text-blue-400 shrink-0" />
+
                                         <span className="text-sm font-medium text-blue-100 truncate max-w-[400px]">
                                             {currentFileName}
                                         </span>

@@ -29,7 +29,15 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
         return () => usb.removeEventListener('disconnect', handleDisconnect);
     }, []);
 
+    const abortControllerRef = useRef<AbortController | null>(null);
+
     const startLogcat = useCallback(async (adb: Adb) => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         try {
             // Check if shellProtocol is available
             if (!adb.subprocess.shellProtocol) {
@@ -46,7 +54,13 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
             // process.stdout is a ReadableStream<Uint8Array>
             // We use a reader to consume it
             const reader = process.stdout.getReader();
+
             while (true) {
+                if (controller.signal.aborted) {
+                    await reader.cancel();
+                    break;
+                }
+
                 const { done, value } = await reader.read();
                 if (done) break;
                 if (value) {
@@ -57,6 +71,8 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
                 }
             }
         } catch (e) {
+            // Ignore abort errors
+            if (controller.signal.aborted) return;
             console.error('Logcat Error:', e);
         }
     }, [onData]);
@@ -146,8 +162,12 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
     }, []);
 
     const disconnect = useCallback(() => {
-        // Cleanup real device
-        // (Actual cleanup logic depends on library, usually just close)
+        // Stop logcat reading
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+        }
+
         setDevice(null);
         setIsConnected(false);
         setDeviceName(null);
