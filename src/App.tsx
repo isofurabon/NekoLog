@@ -43,7 +43,21 @@ function App() {
         onClear={clearLogs}
       />
 
-      <LogList />
+      {(isConnected || isViewingFile) && <LogList />}
+
+      {!isConnected && !isViewingFile && (
+        <div className="flex-1 flex flex-col items-center justify-center text-center p-12 select-none">
+          <div className="space-y-6">
+            <div className="text-6xl font-black italic tracking-tighter text-blue-500/10">NEKOLOG</div>
+            <div className="space-y-2">
+              <div className="text-sm font-bold tracking-[0.3em] text-purple-400/60 uppercase">Ready to Inspect</div>
+              <div className="space-y-1">
+                <p className="text-gray-400">Drop a log file here or connect to a device to start monitoring.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer Links */}
       <div className="footer-links">
