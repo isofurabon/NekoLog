@@ -43,22 +43,16 @@ function App() {
         onClear={clearLogs}
       />
 
-      {/* Demo Actions (Hidden/Subtle) */}
-      {!isConnected && !isViewingFile && (
-        <div className="absolute top-40 left-1/2 -translate-x-1/2 z-10 text-xs text-gray-600">
-          <button type="button"
-            onClick={startMock}
-            className="hover:text-blue-400 border border-t-white/5 px-2 py-1 rounded bg-crust/50"
-          >
-            Start Demo Mode
-          </button>
-        </div>
-      )}
-
       <LogList />
 
       {/* Footer Links */}
       <div className="footer-links">
+        {!isConnected && !isViewingFile && (
+          <>
+            <button type="button" onClick={startMock} className="hover:text-blue-400 hover:underline cursor-pointer">Start Demo Mode</button>
+            <span className="separator">|</span>
+          </>
+        )}
         <a href="https://github.com/isofurabon/NekoLog" target="_blank" rel="noopener noreferrer">GitHub</a>
         <span className="separator">|</span>
         <a href="THIRD-PARTY-NOTICES.txt" download="THIRD-PARTY-NOTICES.txt">Third Party Notices</a>
