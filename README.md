@@ -20,6 +20,8 @@ host machine.
 
 - **Zero-Setup Connectivity**: Connects directly to Android devices via WebUSB.
   No native `adb` or drivers required.
+- **Offline Viewing**: Drag & drop support to view local log files with full
+  filtering capabilities.
 - **High Performance**:
   - **Web Workers**: Offloads heavy log parsing to keep the UI buttery smooth.
   - **Virtualization**: Renders tens of thousands of log lines effortlessly
@@ -91,6 +93,12 @@ pre-compiled binary. Just download and execute it.
    - Toggle auto-scrolling using the arrow button in the control bar.
    - Auto-scroll automatically pauses when you scroll up to inspect older logs
      and resumes when you scroll back to the bottom.
+
+4. **File Viewer**:
+   - Drag and drop any `.txt` or `.log` file directly into the window.
+   - NekoLog will parse and display it instantly, allowing you to use all
+     filtering and search features on static files.
+   - Large files (>100MB) are supported via efficient chunked processing.
 
 ## 🛠️ Development
 

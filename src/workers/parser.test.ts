@@ -71,7 +71,8 @@ describe('Log Parser', () => {
 
             expect(result).not.toBeNull();
             expect(result?.level).toBe('I');
-            expect(result?.tag).toBe('System');
+            expect(result?.tag).toBe('Raw');
+
             expect(result?.message).toBe(line);
             expect(result?.pid).toBe('?');
             expect(result?.tid).toBe('?');
@@ -85,7 +86,18 @@ describe('Log Parser', () => {
             const result = parseLogLine(line);
 
             // parseLogLine returns the original line as message for fallback
-            expect(result?.message).toBe('   some error   ');
+            expect(result?.message).toBe(line);
         });
+
+        it('handles long lines by omitting message', () => {
+            const longLine = 'a'.repeat(10001);
+            const result = parseLogLine(longLine);
+
+            expect(result).not.toBeNull();
+            expect(result?.level).toBe('W');
+            expect(result?.tag).toBe('System');
+            expect(result?.message).toBe('<Message too long, omitted>');
+        });
+
     });
 });

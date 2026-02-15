@@ -7,7 +7,9 @@ import { generateMockLog } from '../utils/mock.ts';
 
 export function useAdb(onData: (chunk: ArrayBuffer) => void) {
     const [, setDevice] = useState<Adb | null>(null);
+    const deviceRef = useRef<Adb | null>(null);
     const [isConnected, setIsConnected] = useState(false);
+
     const [deviceName, setDeviceName] = useState<string | null>(null);
 
     // Mock state
@@ -17,6 +19,7 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
     // Listen for device disconnection
     useEffect(() => {
         const handleDisconnect = () => {
+            deviceRef.current = null;
             setDevice(null);
             setIsConnected(false);
             setDeviceName(null);
@@ -29,7 +32,15 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
         return () => usb.removeEventListener('disconnect', handleDisconnect);
     }, []);
 
+    const abortControllerRef = useRef<AbortController | null>(null);
+
     const startLogcat = useCallback(async (adb: Adb) => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         try {
             // Check if shellProtocol is available
             if (!adb.subprocess.shellProtocol) {
@@ -46,9 +57,17 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
             // process.stdout is a ReadableStream<Uint8Array>
             // We use a reader to consume it
             const reader = process.stdout.getReader();
+
             while (true) {
+                if (controller.signal.aborted) {
+                    await reader.cancel();
+                    break;
+                }
+
                 const { done, value } = await reader.read();
+                if (controller.signal.aborted) break;
                 if (done) break;
+
                 if (value) {
                     // Value is Uint8Array, we need ArrayBuffer or just pass the buffer
                     // Copying to ArrayBuffer to be safe for transfer
@@ -57,6 +76,8 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
                 }
             }
         } catch (e) {
+            // Ignore abort errors
+            if (controller.signal.aborted) return;
             console.error('Logcat Error:', e);
         }
     }, [onData]);
@@ -64,6 +85,28 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
     const connect = useCallback(async () => {
         const MAX_RETRIES = 3;
         const RETRY_DELAY_MS = 500;
+
+        // Clean up any stale state from previous connection (e.g. after browser reload)
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+        }
+        if (deviceRef.current) {
+            try {
+                await deviceRef.current.transport.close();
+            } catch {
+                // Ignore errors from stale connections
+            }
+            deviceRef.current = null;
+        }
+        setDevice(null);
+        setIsConnected(false);
+        setDeviceName(null);
+        // Stop mock if running (use ref directly to avoid forward-reference)
+        if (mockInterval.current) {
+            clearTimeout(mockInterval.current);
+            mockInterval.current = null;
+        }
 
         const Manager = AdbDaemonWebUsbDeviceManager.BROWSER;
         if (!Manager) {
@@ -75,19 +118,27 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
         if (!device) return;
 
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            let connection: Awaited<ReturnType<typeof device.connect>> | null = null;
             try {
-                const connection = await device.connect();
+                connection = await device.connect();
 
-                // Authenticate using AdbDaemonTransport
-                // serial is required, fall back to "unknown" if missing (WebUSB device usually has it)
-                const transport = await AdbDaemonTransport.authenticate({
-                    serial: device.serial || 'unknown',
-                    connection,
-                    credentialStore: CredentialStore.current,
-                });
+                // Authenticate using AdbDaemonTransport with timeout
+                // Authentication can hang if the device is unresponsive
+                const AUTH_TIMEOUT_MS = 10_000;
+                const transport = await Promise.race([
+                    AdbDaemonTransport.authenticate({
+                        serial: device.serial || 'unknown',
+                        connection,
+                        credentialStore: CredentialStore.current,
+                    }),
+                    new Promise<never>((_, reject) =>
+                        setTimeout(() => reject(new Error('Authentication timed out. Please check the device screen for an authorization prompt and try again.')), AUTH_TIMEOUT_MS)
+                    ),
+                ]);
 
                 const adb = new Adb(transport);
 
+                deviceRef.current = adb;
                 setDevice(adb);
                 setIsConnected(true);
                 setDeviceName(device.name || 'Android Device');
@@ -99,6 +150,23 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
             } catch (e) {
                 const errorMessage = (e as Error).message;
                 console.error(`ADB Connect Error (attempt ${attempt}/${MAX_RETRIES}):`, e);
+
+                // If authentication timed out, forcibly close and bail
+                if (errorMessage.includes('timed out')) {
+                    try { await device.raw.close(); } catch { /* ignore */ }
+
+                    // Reset all state to ensure clean retry
+                    deviceRef.current = null;
+                    setDevice(null);
+                    setIsConnected(false);
+                    setDeviceName(null);
+
+                    // abortControllerRef is already null here (cleared at start of connect)
+                    // so no need to abort it.
+
+                    alert(errorMessage);
+                    return;
+                }
 
                 // If the device was disconnected, we can't retry with the same reference
                 if (errorMessage.includes('disconnected')) {
@@ -145,14 +213,29 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
         }
     }, []);
 
-    const disconnect = useCallback(() => {
-        // Cleanup real device
-        // (Actual cleanup logic depends on library, usually just close)
+    const disconnect = useCallback(async () => {
+        // Stop logcat reading
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+        }
+
+        // Close ADB connection
+        if (deviceRef.current) {
+            try {
+                await deviceRef.current.transport.close();
+            } catch (e) {
+                console.error('Error closing ADB transport:', e);
+            }
+            deviceRef.current = null;
+        }
+
         setDevice(null);
         setIsConnected(false);
         setDeviceName(null);
         stopMock();
     }, [stopMock]);
+
 
     return {
         connect,

@@ -61,6 +61,7 @@
 }
 
 @theme {
+  --font-mono: "JetBrains Mono", monospace;
   --color-red-500: var(--ctp-red);
   --color-yellow-500: var(--ctp-yellow);
   --color-green-500: var(--ctp-green);

@@ -5,10 +5,27 @@ const decoder = new TextDecoder();
 
 // Standard `threadtime` format regex
 // Date Time PID TID Level Tag: Message
-export const LOG_REGEX = /^(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\.\d{3})\s+(\d+)\s+(\d+)\s+([VDIWEF])\s+(.*?):\s+(.*)$/;
+// Supports "PID TID", "PID/TID", "PID/ TID" etc.
+export const LOG_REGEX = /^(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\.\d{3})\s+([0-9?]+)(?:[\/\s]+)([0-9?]+)\s+([VDIWEF])\s+(.*?):\s+(.*)$/;
+
+
 
 export function parseLogLine(line: string): Omit<LogEntry, 'id'> | null {
     if (!line.trim()) return null;
+
+    // Too long line check (e.g., > 10000 chars)
+    if (line.length > 10000) {
+        const now = new Date();
+        const timestamp = now.toISOString().slice(5, 23).replace('T', ' ');
+        return {
+            timestamp,
+            pid: '?',
+            tid: '?',
+            level: 'W',
+            tag: 'System',
+            message: '<Message too long, omitted>',
+        };
+    }
 
     const match = line.match(LOG_REGEX);
     if (match) {
@@ -23,10 +40,8 @@ export function parseLogLine(line: string): Omit<LogEntry, 'id'> | null {
         };
     } else {
         // Fallback for lines that don't match (e.g. stack traces often don't have headers)
-        // For now, treat them as part of the previous log or generic info?
-        // Let's create a raw log entry for now to avoid losing data
-        // Or if we have a previous log, append to its message?
-        // Simpler approach for v1: Create a System/Info log
+        // Treat as INFO log with the raw line as message, but only populate message field
+        // Others get default values
         const now = new Date();
         const timestamp = now.toISOString().slice(5, 23).replace('T', ' ');
         return {
@@ -34,7 +49,7 @@ export function parseLogLine(line: string): Omit<LogEntry, 'id'> | null {
             pid: '?',
             tid: '?',
             level: 'I',
-            tag: 'System',
+            tag: 'Raw',
             message: line,
         };
     }
@@ -47,6 +62,37 @@ self.onmessage = (event: MessageEvent<WorkerCommand>) => {
         const { payload } = event.data as { payload: ArrayBuffer };
         const text = decoder.decode(payload, { stream: true });
         buffer += text;
+
+        // Safety: Prevent unlimited buffer growth (e.g. minified files or binary garbage)
+        const MAX_BUFFER_SIZE = 10 * 1024 * 1024; // 10MB
+        if (buffer.length > MAX_BUFFER_SIZE) {
+            const nextNewline = buffer.indexOf('\n', MAX_BUFFER_SIZE);
+
+            // Generate a warning log about the overflow
+            const now = new Date();
+            const timestamp = now.toISOString().slice(5, 23).replace('T', ' ');
+            const overflowLog: LogEntry = {
+                id: self.crypto.randomUUID(),
+                timestamp,
+                pid: '?',
+                tid: '?',
+                level: 'E',
+                tag: 'NekoLog',
+                message: `Buffer overflow detected (>10MB). Discarding ${nextNewline !== -1 ? nextNewline : buffer.length} characters to prevent crash.`,
+            };
+
+            // If we found a newline comfortably after the limit, slice from there
+            if (nextNewline !== -1) {
+                buffer = buffer.slice(nextNewline + 1);
+            } else {
+                // No newline found even after limit implies a massive single line or binary blob
+                // discard everything
+                buffer = '';
+            }
+
+            // Send the warning immediately
+            self.postMessage({ type: 'NEW_LOGS', payload: [overflowLog] });
+        }
 
         const lines = buffer.split('\n');
         // Keep the last incomplete line in the buffer
@@ -70,5 +116,19 @@ self.onmessage = (event: MessageEvent<WorkerCommand>) => {
         }
     } else if (type === 'CLEAR') {
         buffer = '';
+    } else if (type === 'FLUSH') {
+        if (buffer.trim()) {
+            const parsed = parseLogLine(buffer);
+            if (parsed) {
+                const log = {
+                    ...parsed,
+                    id: self.crypto.randomUUID(),
+                };
+                const response: WorkerResponse = { type: 'NEW_LOGS', payload: [log] };
+                self.postMessage(response);
+            }
+        }
+        buffer = '';
     }
+
 };

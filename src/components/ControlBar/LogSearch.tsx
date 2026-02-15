@@ -23,7 +23,12 @@ export const LogSearch = ({ onClose, inputRef }: LogSearchProps) => {
         return () => clearTimeout(timer);
     }, [inputRef]);
 
-    const handleBlur = () => {
+    const handleBlur = (e: React.FocusEvent) => {
+        // Don't close if focus moved to another element within the same container
+        // (e.g. filter menu button, or component unmounting during file drop)
+        if (e.relatedTarget && e.currentTarget.closest('[data-testid="control-bar-container"]')?.contains(e.relatedTarget as Node)) {
+            return;
+        }
         if (!filterText) {
             onClose();
         }
