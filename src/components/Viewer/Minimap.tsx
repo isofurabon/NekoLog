@@ -8,12 +8,12 @@ interface MinimapProps {
 }
 
 const LEVEL_COLORS: Record<string, string> = {
-    V: '#a6adc8', // subtext0
-    D: '#89b4fa', // blue
-    I: '#a6e3a1', // green
+    V: '#6c7086', // overlay0/gray-500
+    D: '#9399b2', // overlay2/gray-400
+    I: '#a6adc8', // subtext0
     W: '#f9e2af', // yellow
     E: '#f38ba8', // red
-    F: '#cba6f7', // mauve (fatal)
+    F: '#cba6f7', // mauve
 };
 
 export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize }) => {
@@ -51,13 +51,20 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
         // Simple approximation: draw every log as a small line
         // If logs.length > clientHeight, we are effectively downsampling
         const itemHeight = Math.max(1, clientHeight / logs.length);
+        const MAX_LOG_LENGTH = 200;
 
         logs.forEach((log, index) => {
             const color = LEVEL_COLORS[log.level] || '#a6adc8';
             ctx.fillStyle = color;
 
             const y = (index / logs.length) * clientHeight;
-            ctx.fillRect(0, y, clientWidth, itemHeight);
+
+            // Calculate width based on message length
+            // Min width 20% to ensuring visibility
+            const lengthRatio = Math.min(1, Math.max(0.2, log.message.length / MAX_LOG_LENGTH));
+            const width = lengthRatio * clientWidth;
+
+            ctx.fillRect(0, y, width, itemHeight);
         });
 
     }, [logs, tick]); // Redraw on log change or resize
