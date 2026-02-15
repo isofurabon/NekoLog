@@ -63,6 +63,37 @@ self.onmessage = (event: MessageEvent<WorkerCommand>) => {
         const text = decoder.decode(payload, { stream: true });
         buffer += text;
 
+        // Safety: Prevent unlimited buffer growth (e.g. minified files or binary garbage)
+        const MAX_BUFFER_SIZE = 10 * 1024 * 1024; // 10MB
+        if (buffer.length > MAX_BUFFER_SIZE) {
+            const nextNewline = buffer.indexOf('\n', MAX_BUFFER_SIZE);
+
+            // Generate a warning log about the overflow
+            const now = new Date();
+            const timestamp = now.toISOString().slice(5, 23).replace('T', ' ');
+            const overflowLog: LogEntry = {
+                id: self.crypto.randomUUID(),
+                timestamp,
+                pid: '?',
+                tid: '?',
+                level: 'E',
+                tag: 'NekoLog',
+                message: `Buffer overflow detected (>10MB). Discarding ${nextNewline !== -1 ? nextNewline : buffer.length} characters to prevent crash.`,
+            };
+
+            // If we found a newline comfortably after the limit, slice from there
+            if (nextNewline !== -1) {
+                buffer = buffer.slice(nextNewline + 1);
+            } else {
+                // No newline found even after limit implies a massive single line or binary blob
+                // discard everything
+                buffer = '';
+            }
+
+            // Send the warning immediately
+            self.postMessage({ type: 'NEW_LOGS', payload: [overflowLog] });
+        }
+
         const lines = buffer.split('\n');
         // Keep the last incomplete line in the buffer
         buffer = lines.pop() || '';
