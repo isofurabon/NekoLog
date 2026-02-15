@@ -18,6 +18,8 @@ export function useLogWorker() {
             if (type === 'NEW_LOGS') {
                 setLogs((prev: LogEntry[]) => [...prev, ...payload]);
             }
+
+
         };
 
         return () => {
@@ -28,6 +30,7 @@ export function useLogWorker() {
     const addChunk = useCallback((chunk: ArrayBuffer) => {
         if (workerRef.current) {
             const command: WorkerCommand = { type: 'PARSE_CHUNK', payload: chunk };
+
             // Transferable object for zero-copy
             workerRef.current.postMessage(command, [chunk]);
         }
@@ -38,5 +41,10 @@ export function useLogWorker() {
         workerRef.current?.postMessage({ type: 'CLEAR' });
     }, [setLogs]);
 
-    return { addChunk, clearLogs };
+    const flushLogs = useCallback(() => {
+        workerRef.current?.postMessage({ type: 'FLUSH' });
+    }, []);
+
+    return { addChunk, clearLogs, flushLogs };
+
 }

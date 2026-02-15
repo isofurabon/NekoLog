@@ -1,9 +1,10 @@
 import { ArrowDown, Download, Trash2, type LucideIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
-import { useAtom } from 'jotai';
-import { autoScrollAtom, filteredLogsAtom } from '@/store';
+import { useAtom, useSetAtom } from 'jotai';
+import { autoScrollAtom, filteredLogsAtom, isViewingFileAtom, currentFileNameAtom } from '@/store';
 import { downloadLogs } from '@/utils/download.ts';
+
 
 interface ActionButtonProps {
     onClick: () => void;
@@ -48,6 +49,16 @@ interface LogActionsProps {
 export const LogActions = ({ isExpanded, onClear, isHovered }: LogActionsProps) => {
     const [autoScroll, setAutoScroll] = useAtom(autoScrollAtom);
     const [logs] = useAtom(filteredLogsAtom);
+    const setIsViewingFile = useSetAtom(isViewingFileAtom);
+    const setCurrentFileName = useSetAtom(currentFileNameAtom);
+
+    // New handler for Clear/Trash
+    const handleClear = () => {
+        onClear();
+        setIsViewingFile(false);
+        setCurrentFileName(null);
+    };
+
 
     const handleDownload = () => {
         downloadLogs(logs, { format: 'txt' });
@@ -83,12 +94,13 @@ export const LogActions = ({ isExpanded, onClear, isHovered }: LogActionsProps) 
                     />
 
                     <ActionButton
-                        onClick={onClear}
+                        onClick={handleClear}
                         icon={Trash2}
                         title="Clear Logs"
                         colorClass="text-red-400"
                         hoverColorClass="hover:bg-red-500 hover:text-base"
                     />
+
                 </motion.div>
             )}
         </AnimatePresence>
