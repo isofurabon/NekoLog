@@ -26,7 +26,7 @@ describe('LogActions Component', () => {
 
     it('renders when isExpanded is false and isHovered is true', () => {
         const onClear = vi.fn();
-        renderWithProvider(<LogActions isExpanded={false} isHovered={true} onClear={onClear} />);
+        renderWithProvider(<LogActions isExpanded={false} isHovered onClear={onClear} />);
 
         expect(screen.getByTitle('Toggle Auto-scroll')).toBeInTheDocument();
         expect(screen.getByTitle('Download Logs')).toBeInTheDocument();
@@ -35,7 +35,7 @@ describe('LogActions Component', () => {
 
     it('does not render when isExpanded is true', () => {
         const onClear = vi.fn();
-        renderWithProvider(<LogActions isExpanded={true} isHovered={true} onClear={onClear} />);
+        renderWithProvider(<LogActions isExpanded isHovered onClear={onClear} />);
 
         expect(screen.queryByTitle('Toggle Auto-scroll')).not.toBeInTheDocument();
     });
@@ -52,7 +52,7 @@ describe('LogActions Component', () => {
         store.set(autoScrollAtom, false);
         const onClear = vi.fn();
 
-        renderWithProvider(<LogActions isExpanded={false} isHovered={true} onClear={onClear} />, store);
+        renderWithProvider(<LogActions isExpanded={false} isHovered onClear={onClear} />, store);
 
         const toggleButton = screen.getByTitle('Toggle Auto-scroll');
 
@@ -72,7 +72,7 @@ describe('LogActions Component', () => {
         store.set(logsAtom, mockLogs);
 
         const onClear = vi.fn();
-        renderWithProvider(<LogActions isExpanded={false} isHovered={true} onClear={onClear} />, store);
+        renderWithProvider(<LogActions isExpanded={false} isHovered onClear={onClear} />, store);
 
         const downloadButton = screen.getByTitle('Download Logs');
         fireEvent.click(downloadButton);
@@ -82,7 +82,7 @@ describe('LogActions Component', () => {
 
     it('calls onClear when clear button is clicked', () => {
         const onClear = vi.fn();
-        renderWithProvider(<LogActions isExpanded={false} isHovered={true} onClear={onClear} />);
+        renderWithProvider(<LogActions isExpanded={false} isHovered onClear={onClear} />);
 
         const clearButton = screen.getByTitle('Clear Logs');
         fireEvent.click(clearButton);
