@@ -1,41 +1,46 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Provider, useSetAtom } from 'jotai';
 import { ControlBar } from './ControlBar';
-import { isViewingFileAtom, currentFileNameAtom, isLoadingFileAtom, loadingProgressAtom } from '@/store';
+import { startFileLoadAtom, updateFileProgressAtom, resetFileModeAtom } from '@/store';
 import { useEffect } from 'react';
 
+/** Helper component that sets file-mode state for Storybook stories via action atoms */
 const StoreSetter = ({
     isViewingFile = false,
     currentFileName = null,
     isLoadingFile = false,
-    loadingProgress = 0
+    loadingProgress = 0,
 }: {
     isViewingFile?: boolean;
     currentFileName?: string | null;
     isLoadingFile?: boolean;
     loadingProgress?: number;
 }) => {
-    const setIsViewingFile = useSetAtom(isViewingFileAtom);
-    const setCurrentFileName = useSetAtom(currentFileNameAtom);
-    const setIsLoadingFile = useSetAtom(isLoadingFileAtom);
-    const setLoadingProgress = useSetAtom(loadingProgressAtom);
+    const startFileLoad = useSetAtom(startFileLoadAtom);
+    const updateProgress = useSetAtom(updateFileProgressAtom);
+    const resetFileMode = useSetAtom(resetFileModeAtom);
 
     useEffect(() => {
-        setIsViewingFile(isViewingFile);
-        setCurrentFileName(currentFileName);
-        setIsLoadingFile(isLoadingFile);
-        setLoadingProgress(loadingProgress);
-    }, [isViewingFile, currentFileName, isLoadingFile, loadingProgress, setIsViewingFile, setCurrentFileName, setIsLoadingFile, setLoadingProgress]);
+        if (isViewingFile && currentFileName) {
+            startFileLoad(currentFileName);
+            updateProgress(loadingProgress);
+            // If not loading, we need to simulate the "finished" state
+            // startFileLoad sets isLoading: true, so if we don't want loading, no further action needed
+            // since the ControlBar auto-collapses on isLoading becoming false. 
+            // For storybook, the isLoading state from startFileLoad is fine for ViewingFile story.
+        } else {
+            resetFileMode();
+        }
+    }, [isViewingFile, currentFileName, isLoadingFile, loadingProgress, startFileLoad, updateProgress, resetFileMode]);
 
     return null;
 };
-
 
 const meta = {
     title: 'ControlBar/ControlBar',
     component: ControlBar,
     parameters: {
-        layout: 'fullscreen', // ControlBar is absolute positioned
+        layout: 'fullscreen',
     },
     decorators: [
         (Story) => (
@@ -99,7 +104,6 @@ export const ViewingFile: Story = {
         ),
     ],
 };
-
 
 export const LoadingFile: Story = {
     args: {

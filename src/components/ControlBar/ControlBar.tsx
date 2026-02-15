@@ -4,12 +4,136 @@ import { Search, Smartphone, FileText, X } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { DeviceStatus } from './DeviceStatus.tsx';
 import { LogSearch } from './LogSearch.tsx';
-import { useAtom } from 'jotai';
-import { isViewingFileAtom, currentFileNameAtom, isLoadingFileAtom, loadingProgressAtom } from '@/store';
-
+import { useAtomValue, useSetAtom } from 'jotai';
+import { isViewingFileAtom, currentFileNameAtom, isLoadingFileAtom, loadingProgressAtom, cancelFileLoadAtom } from '@/store';
 import { LogActions } from './LogActions.tsx';
 import { MarqueeText } from './MarqueeText.tsx';
 import { useClickOutside } from '@/hooks/useClickOutside.ts';
+
+// --- Sub-components ---
+
+/** Hover hint overlay shared between file-mode and connected-mode collapsed states */
+const HoverHint = ({
+    icon: Icon,
+    text,
+    isHovered,
+    iconClassName,
+    textClassName,
+}: {
+    icon: typeof Search;
+    text: string;
+    isHovered: boolean;
+    iconClassName: string;
+    textClassName: string;
+}) => (
+    <AnimatePresence>
+        {isHovered && (
+            <motion.div
+                key="hint-overlay"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="absolute inset-0 flex items-center justify-center pointer-events-none px-4"
+            >
+                <div className="flex items-center gap-2 w-full">
+                    <Icon size={14} className={iconClassName} strokeWidth={3} />
+                    <div className="min-w-0 flex-1 overflow-hidden">
+                        <MarqueeText
+                            text={text}
+                            isHovered={isHovered}
+                            className={textClassName}
+                        />
+                    </div>
+                </div>
+            </motion.div>
+        )}
+    </AnimatePresence>
+);
+
+/** Loading progress bar shown while a file is being read */
+const FileLoadingBar = ({
+    fileName,
+    progress,
+    onCancel,
+}: {
+    fileName: string | null;
+    progress: number;
+    onCancel: (e: React.MouseEvent) => void;
+}) => (
+    <motion.div
+        key="loading"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="w-full flex items-center gap-3 px-2"
+    >
+        <FileText size={18} className="text-blue-400 shrink-0" />
+        <div className="flex-1 flex flex-col justify-center gap-1">
+            <div className="text-xs text-gray-400 flex justify-between">
+                <span className="truncate max-w-[300px]">{fileName}</span>
+                <span>{progress}%</span>
+            </div>
+            <div className="h-1 w-full bg-surface0 rounded-full overflow-hidden">
+                <motion.div
+                    className="h-full bg-blue-500"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    transition={{ ease: "linear" }}
+                />
+            </div>
+        </div>
+        <button
+            type="button"
+            onClick={onCancel}
+            className="p-1 hover:bg-red-500/20 hover:text-red-400 rounded-full transition-colors"
+        >
+            <X size={16} />
+        </button>
+    </motion.div>
+);
+
+/** Collapsed file-mode state showing filename with hover-to-filter hint */
+const FileModeCollapsed = ({
+    fileName,
+    isHovered,
+    onExpand,
+}: {
+    fileName: string | null;
+    isHovered: boolean;
+    onExpand: (e?: React.MouseEvent) => void;
+}) => (
+    <div
+        className="relative w-full h-full flex items-center justify-center cursor-pointer"
+        onClick={onExpand}
+        data-testid="file-mode-click-area"
+    >
+        <motion.div
+            key="file-mode-info"
+            initial={{ opacity: 0 }}
+            animate={{
+                opacity: isHovered ? 0 : 1,
+                y: isHovered ? -10 : 0,
+            }}
+            exit={{ opacity: 0 }}
+            className="flex items-center gap-2 justify-center w-full"
+        >
+            <FileText size={14} className="text-blue-400 shrink-0" />
+            <span className="text-sm font-medium text-blue-100 truncate max-w-[400px]">
+                {fileName}
+            </span>
+        </motion.div>
+
+        <HoverHint
+            icon={Search}
+            text="Click to filter"
+            isHovered={isHovered}
+            iconClassName="text-gray-300 shrink-0"
+            textClassName="text-sm font-medium text-gray-300"
+        />
+    </div>
+);
+
+// --- Main Component ---
 
 interface ControlBarProps {
     deviceUniqueId?: string;
@@ -22,30 +146,30 @@ export const ControlBar = ({
     deviceUniqueId,
     onConnect,
     isConnected,
-    onClear
+    onClear,
 }: ControlBarProps) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // File Mode State
-    const [isViewingFile] = useAtom(isViewingFileAtom);
-    const [currentFileName] = useAtom(currentFileNameAtom);
-    const [isLoadingFile, setIsLoadingFile] = useAtom(isLoadingFileAtom);
-    const [loadingProgress] = useAtom(loadingProgressAtom);
+    // File Mode State (read-only)
+    const isViewingFile = useAtomValue(isViewingFileAtom);
+    const currentFileName = useAtomValue(currentFileNameAtom);
+    const isLoadingFile = useAtomValue(isLoadingFileAtom);
+    const loadingProgress = useAtomValue(loadingProgressAtom);
+    const cancelFileLoad = useSetAtom(cancelFileLoadAtom);
 
     // Click outside to collapse
     const handleCollapse = useCallback(() => setIsExpanded(false), []);
     useClickOutside(containerRef, handleCollapse, isExpanded);
 
     // Keyboard shortcut Cmd/Ctrl+K & Escape
-    // if the devie is conencted, open the search bar, otherwise nothing happens
     useEffect(() => {
         const handleGlobalKeyDown = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
                 e.preventDefault();
-                if (isConnected && !isViewingFile) {
+                if (isConnected || isViewingFile) {
                     setIsExpanded(true);
                     setTimeout(() => inputRef.current?.focus(), 100);
                 }
@@ -59,17 +183,13 @@ export const ControlBar = ({
     }, [isExpanded, isConnected, isViewingFile]);
 
     const toggleExpand = (e?: React.MouseEvent) => {
-        // console.log("Toggle Expand Clicked");
         e?.stopPropagation();
         e?.preventDefault();
         if (!isExpanded) {
-
-
             setIsExpanded(true);
             setTimeout(() => inputRef.current?.focus(), 100);
         }
     };
-
 
     const handleCloseSearch = () => {
         setIsExpanded(false);
@@ -77,25 +197,98 @@ export const ControlBar = ({
 
     const handleCancelLoading = (e: React.MouseEvent) => {
         e.stopPropagation();
-        // Just stop loading UI state, the worker might still processing remaining chunks but app won't freeze
-        // Ideally we should tell the App to stop reading.
-        // For this iteration, we set loading to false.
-        setIsLoadingFile(false);
+        cancelFileLoad();
     };
 
-    // Auto-expand/collapse logic
+    // Auto-expand/collapse based on loading state
     useEffect(() => {
         if (isLoadingFile) {
             setIsExpanded(true);
         } else if (!isLoadingFile && isViewingFile) {
-            // Loading finished, collapse to show filename
             setIsExpanded(false);
         }
     }, [isLoadingFile, isViewingFile]);
 
+    // Determine the content to render inside the bar
+    const renderBarContent = () => {
+        // 1) File loading in progress
+        if (isViewingFile && isExpanded && isLoadingFile) {
+            return (
+                <FileLoadingBar
+                    fileName={currentFileName}
+                    progress={loadingProgress}
+                    onCancel={handleCancelLoading}
+                />
+            );
+        }
+
+        // 2) File mode — collapsed: show filename, expanded: show search
+        if (isViewingFile) {
+            return !isExpanded ? (
+                <FileModeCollapsed
+                    fileName={currentFileName}
+                    isHovered={isHovered}
+                    onExpand={toggleExpand}
+                />
+            ) : (
+                <motion.div
+                    key="file-mode-search"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="w-full h-full"
+                >
+                    <LogSearch onClose={handleCloseSearch} inputRef={inputRef} />
+                </motion.div>
+            );
+        }
+
+        // 3) Standard collapsed: device status + hover hints
+        if (!isExpanded) {
+            return (
+                <div className="relative h-full flex items-center justify-center">
+                    <motion.div
+                        animate={{
+                            opacity: isHovered ? 0 : 1,
+                            y: isHovered ? -10 : 0,
+                        }}
+                        transition={{ duration: 0.2 }}
+                        className="flex items-center"
+                    >
+                        <DeviceStatus
+                            deviceUniqueId={deviceUniqueId}
+                            isConnected={isConnected}
+                        />
+                    </motion.div>
+
+                    <HoverHint
+                        icon={isConnected ? Search : Smartphone}
+                        text={isConnected ? 'Click to filter' : 'Click to connect'}
+                        isHovered={isHovered}
+                        iconClassName={isConnected ? 'text-gray-300 shrink-0' : 'text-blue-400 shrink-0'}
+                        textClassName={isConnected ? 'text-sm font-medium text-gray-300' : 'text-sm font-medium text-blue-400'}
+                    />
+                </div>
+            );
+        }
+
+        // 4) Standard expanded: search input
+        return (
+            <motion.div
+                key="search"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="w-full h-full"
+            >
+                <LogSearch onClose={handleCloseSearch} inputRef={inputRef} />
+            </motion.div>
+        );
+    };
 
     return (
-
         <div className="absolute top-8 left-0 right-0 z-50 flex flex-col items-center pointer-events-none">
             <div
                 ref={containerRef}
@@ -104,14 +297,13 @@ export const ControlBar = ({
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
             >
-
                 <motion.div
                     layout
                     initial={false}
                     animate={{
                         backgroundColor: "rgba(49, 50, 68, 0.9)",
-                        paddingLeft: isExpanded || isViewingFile ? 16 : 16, // Adjust padding
-                        paddingRight: isExpanded || isViewingFile ? 16 : 16
+                        paddingLeft: 16,
+                        paddingRight: 16,
                     }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     className={clsx(
@@ -123,188 +315,16 @@ export const ControlBar = ({
                     onClick={!isExpanded && !isViewingFile ? (isConnected ? toggleExpand : onConnect) : undefined}
                 >
                     <AnimatePresence mode="wait">
-                        {isViewingFile && isExpanded && isLoadingFile ? (
-                            // Loading State
-                            <motion.div
-                                key="loading"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="w-full flex items-center gap-3 px-2"
-                            >
-                                <FileText size={18} className="text-blue-400 shrink-0" />
-                                <div className="flex-1 flex flex-col justify-center gap-1">
-                                    <div className="text-xs text-gray-400 flex justify-between">
-                                        <span className="truncate max-w-[300px]">{currentFileName}</span>
-                                        <span>{loadingProgress}%</span>
-                                    </div>
-                                    <div className="h-1 w-full bg-surface0 rounded-full overflow-hidden">
-                                        <motion.div
-                                            className="h-full bg-blue-500"
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${loadingProgress}%` }}
-                                            transition={{ ease: "linear" }}
-                                        />
-                                    </div>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={handleCancelLoading}
-                                    className="p-1 hover:bg-red-500/20 hover:text-red-400 rounded-full transition-colors"
-                                >
-                                    <X size={16} />
-                                </button>
-
-                            </motion.div>
-                        ) : isViewingFile ? (
-                            // File Mode
-                            // If expandable (search open), show search. If collapsed, show file info.
-                            // User requirement: "you don't need to show the filename when expanding the control bar (during filter input)"
-                            !isExpanded ? (
-                                <div
-                                    className="relative w-full h-full flex items-center justify-center cursor-pointer"
-                                    onClick={toggleExpand}
-                                    data-testid="file-mode-click-area"
-                                >
-                                    <motion.div
-                                        key="file-mode-info"
-                                        initial={{ opacity: 0 }}
-                                        animate={{
-                                            opacity: isHovered ? 0 : 1,
-                                            y: isHovered ? -10 : 0
-                                        }}
-                                        exit={{ opacity: 0 }}
-                                        className="flex items-center gap-2 justify-center w-full"
-                                    >
-                                        <FileText size={14} className="text-blue-400 shrink-0" />
-
-                                        <span className="text-sm font-medium text-blue-100 truncate max-w-[400px]">
-                                            {currentFileName}
-                                        </span>
-                                    </motion.div>
-
-                                    <AnimatePresence>
-                                        {isHovered && (
-                                            <motion.div
-                                                key="hint-overlay"
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: 10 }}
-                                                className="absolute inset-0 flex items-center justify-center pointer-events-none px-4"
-                                            >
-
-                                                <div className="flex items-center gap-2 w-full">
-                                                    <Search size={14} className="text-gray-300 shrink-0" strokeWidth={3} />
-                                                    <div className="min-w-0 flex-1 overflow-hidden">
-                                                        <MarqueeText
-                                                            text="Click to filter"
-                                                            isHovered={isHovered}
-                                                            className="text-sm font-medium text-gray-300"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
-
-                            ) : (
-                                <motion.div
-                                    key="file-mode-search"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="w-full h-full"
-                                >
-                                    <LogSearch
-                                        onClose={handleCloseSearch}
-                                        inputRef={inputRef}
-                                    />
-                                </motion.div>
-                            )
-                        ) : !isExpanded ? (
-                            // Standard Collapsed State
-                            <div className="relative h-full flex items-center justify-center">
-                                {/* Device Status - always present for layout width, fades out on hover */}
-                                <motion.div
-                                    animate={{
-                                        opacity: isHovered ? 0 : 1,
-                                        y: isHovered ? -10 : 0
-                                    }}
-                                    transition={{ duration: 0.2 }}
-                                    className="flex items-center"
-                                >
-                                    <DeviceStatus
-                                        deviceUniqueId={deviceUniqueId}
-                                        isConnected={isConnected}
-                                    />
-                                </motion.div>
-
-                                {/* Hint Overlay - absolute positioned */}
-                                <AnimatePresence>
-                                    {isHovered && (
-                                        <motion.div
-                                            key="hint-overlay"
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: 10 }}
-                                            className="absolute inset-0 flex items-center justify-center pointer-events-none px-4"
-                                        >
-                                            <div className="flex items-center gap-2 w-full">
-                                                {isConnected ? (
-                                                    <>
-                                                        <Search size={14} className="text-gray-300 shrink-0" strokeWidth={3} />
-                                                        <div className="min-w-0 flex-1 overflow-hidden">
-                                                            <MarqueeText
-                                                                text="Click to filter"
-                                                                isHovered={isHovered}
-                                                                className="text-sm font-medium text-gray-300"
-                                                            />
-                                                        </div>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Smartphone size={14} className="text-blue-400 shrink-0" strokeWidth={2.5} />
-                                                        <div className="min-w-0 flex-1 overflow-hidden">
-                                                            <MarqueeText
-                                                                text="Click to connect"
-                                                                isHovered={isHovered}
-                                                                className="text-sm font-medium text-blue-400"
-                                                            />
-                                                        </div>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </div>
-                        ) : (
-                            // Standard Expanded Search State
-                            <motion.div
-                                key="search"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="w-full h-full"
-                            >
-                                <LogSearch
-                                    onClose={handleCloseSearch}
-                                    inputRef={inputRef}
-                                />
-                            </motion.div>
-                        )}
+                        {renderBarContent()}
                     </AnimatePresence>
                 </motion.div>
 
                 <LogActions
                     isExpanded={isExpanded}
                     onClear={onClear}
-                    isHovered={isHovered || isLoadingFile} // Keep actions visible during loading if needed, or maybe not? Spec doesn't say.
+                    isHovered={isHovered || isLoadingFile}
                 />
-            </div >
-        </div >
+            </div>
+        </div>
     );
 };

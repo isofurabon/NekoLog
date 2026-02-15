@@ -12,7 +12,8 @@ export interface LogEntry {
 
 export type WorkerCommand =
     | { type: 'PARSE_CHUNK'; payload: ArrayBuffer }
-    | { type: 'CLEAR' };
+    | { type: 'CLEAR' }
+    | { type: 'FLUSH' };
 
 export type WorkerResponse =
     | { type: 'NEW_LOGS'; payload: LogEntry[] }

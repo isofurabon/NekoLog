@@ -18,8 +18,6 @@ export function useLogWorker() {
             if (type === 'NEW_LOGS') {
                 setLogs((prev: LogEntry[]) => [...prev, ...payload]);
             }
-
-
         };
 
         return () => {
