@@ -62,7 +62,9 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
                 }
 
                 const { done, value } = await reader.read();
+                if (controller.signal.aborted) break;
                 if (done) break;
+
                 if (value) {
                     // Value is Uint8Array, we need ArrayBuffer or just pass the buffer
                     // Copying to ArrayBuffer to be safe for transfer

@@ -97,7 +97,8 @@ function App() {
 
     readNextChunk();
 
-  }, [addChunk, clearLogs, flushLogs, setIsViewingFile, setCurrentFileName, setIsLoadingFile, setLoadingProgress]);
+  }, [addChunk, clearLogs, flushLogs, setIsViewingFile, setCurrentFileName, setIsLoadingFile, setLoadingProgress, isConnected, disconnect]);
+
 
 
 
