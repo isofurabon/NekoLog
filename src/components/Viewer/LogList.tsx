@@ -1,18 +1,19 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useAtom, useAtomValue } from 'jotai';
 import { filteredLogsAtom, autoScrollAtom } from '@/store';
 import { LogRow } from './LogRow.tsx';
+import { Minimap } from './Minimap.tsx';
 
 export const LogList = () => {
     const logs = useAtomValue(filteredLogsAtom);
     const [autoScroll, setAutoScroll] = useAtom(autoScrollAtom);
-    const parentRef = useRef<HTMLDivElement>(null);
+    const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null);
     const lastInteractionTime = useRef(0);
 
     const rowVirtualizer = useVirtualizer({
         count: logs.length,
-        getScrollElement: () => parentRef.current,
+        getScrollElement: () => scrollElement,
         estimateSize: () => 24, // Estimate row height
         overscan: 10,
     });
@@ -31,9 +32,9 @@ export const LogList = () => {
 
     // Detect user scroll to disable autoscroll
     const handleScroll = () => {
-        if (!parentRef.current) return;
+        if (!scrollElement) return;
 
-        const { scrollTop, scrollHeight, clientHeight } = parentRef.current;
+        const { scrollTop, scrollHeight, clientHeight } = scrollElement;
         // Check if we are close to bottom
         const distanceToBottom = Math.abs(scrollHeight - scrollTop - clientHeight);
         const isAtBottom = distanceToBottom < 50;
@@ -57,9 +58,14 @@ export const LogList = () => {
             onKeyDown={markInteraction}
         >
             <div className="h-full w-full rounded-xl border border-white/5 bg-crust/30 overflow-hidden relative">
+                <Minimap
+                    logs={logs}
+                    scrollElement={scrollElement}
+                    totalSize={rowVirtualizer.getTotalSize()}
+                />
                 <div
-                    ref={parentRef}
-                    className="h-full w-full overflow-y-auto scrollbar-thin px-2"
+                    ref={setScrollElement}
+                    className="h-full w-full overflow-y-auto scrollbar-none px-2"
                     onScroll={handleScroll}
                 >
                     <div
