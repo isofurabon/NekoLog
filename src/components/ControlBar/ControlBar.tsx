@@ -171,7 +171,7 @@ export const ControlBar = ({
     const handleCollapse = useCallback(() => {
         if (!isLoadingFile) setIsExpanded(false);
     }, [isLoadingFile]);
-    useClickOutside(containerRef, handleCollapse, isExpanded);
+    useClickOutside(containerRef, handleCollapse, isExpanded || isLoadingFile);
 
     // Reliably focus the search input after expand animation
     const focusSearchInput = useCallback(() => {
@@ -223,25 +223,13 @@ export const ControlBar = ({
         cancelFileLoad();
     };
 
-    // Auto-expand/collapse based on loading state
-    // When loading starts → expand to show progress bar
-    // When loading finishes → collapse to show filename
-    const prevIsLoadingRef = useRef(false);
-    useEffect(() => {
-        if (isLoadingFile && !prevIsLoadingRef.current) {
-            // Loading just started → expand
-            setIsExpanded(true);
-        } else if (!isLoadingFile && prevIsLoadingRef.current && isViewingFile) {
-            // Loading just finished → collapse to show filename
-            setIsExpanded(false);
-        }
-        prevIsLoadingRef.current = isLoadingFile;
-    }, [isLoadingFile, isViewingFile]);
+    // Auto-expand/collapse effect removed to prevent race conditions.
+    // Visual state is now derived directly from (isExpanded || isLoadingFile).
 
     // Determine the content to render inside the bar
     const renderBarContent = () => {
-        // 1) File loading in progress
-        if (isViewingFile && isExpanded && isLoadingFile) {
+        // 1) File loading in progress (Overrides everything)
+        if (isLoadingFile) {
             return (
                 <FileLoadingContent
                     fileName={currentFileName}
@@ -337,13 +325,12 @@ export const ControlBar = ({
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     className={clsx(
                         "shadow-xl backdrop-blur-md border flex items-center relative z-20",
-                        isLoadingFile
-                            ? "w-[600px] h-12 rounded-xl overflow-hidden border-blue-500/30"
-                            : isExpanded
-                                ? "w-[600px] h-12 rounded-xl overflow-visible border-white/10"
-                                : "w-auto h-10 rounded-full hover:bg-surface1 cursor-pointer active:scale-95 overflow-hidden border-white/10"
+                        (isExpanded || isLoadingFile)
+                            ? "w-[600px] h-12 rounded-xl overflow-visible border-white/10"
+                            : "w-auto h-10 rounded-full hover:bg-surface1 cursor-pointer active:scale-95 overflow-hidden border-white/10",
+                        isLoadingFile && "overflow-hidden border-blue-500/30" // Override for loading style
                     )}
-                    onClick={!isExpanded && !isViewingFile ? (isConnected ? toggleExpand : onConnect) : undefined}
+                    onClick={!isExpanded && !isLoadingFile && !isViewingFile ? (isConnected ? toggleExpand : onConnect) : undefined}
                 >
                     {/* Progress fill background — only visible during loading */}
                     {isLoadingFile && <ProgressFill progress={loadingProgress} />}
@@ -354,9 +341,9 @@ export const ControlBar = ({
                 </motion.div>
 
                 <LogActions
-                    isExpanded={isExpanded}
+                    isExpanded={isExpanded || isLoadingFile}
                     onClear={onClear}
-                    isHovered={isHovered || isLoadingFile}
+                    isHovered={isHovered}
                 />
             </div>
         </div>
