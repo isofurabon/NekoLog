@@ -6,8 +6,9 @@ import AdbWebCredentialStore from '@yume-chan/adb-credential-web';
 import { generateMockLog } from '../utils/mock.ts';
 
 export function useAdb(onData: (chunk: ArrayBuffer) => void) {
-    const [, setDevice] = useState<Adb | null>(null);
+    const [device, setDevice] = useState<Adb | null>(null);
     const [isConnected, setIsConnected] = useState(false);
+
     const [deviceName, setDeviceName] = useState<string | null>(null);
 
     // Mock state
@@ -163,18 +164,28 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
         }
     }, []);
 
-    const disconnect = useCallback(() => {
+    const disconnect = useCallback(async () => {
         // Stop logcat reading
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
             abortControllerRef.current = null;
         }
 
+        // Close ADB connection
+        if (device) {
+            try {
+                await device.transport.close();
+            } catch (e) {
+                console.error('Error closing ADB transport:', e);
+            }
+        }
+
         setDevice(null);
         setIsConnected(false);
         setDeviceName(null);
         stopMock();
-    }, [stopMock]);
+    }, [stopMock, device]);
+
 
     return {
         connect,
