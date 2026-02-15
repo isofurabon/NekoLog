@@ -1,6 +1,6 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import type { LogEntry } from '@/types';
-import { Virtualizer } from '@tanstack/react-virtual';
+import type { Virtualizer } from '@tanstack/react-virtual';
 
 interface MinimapProps {
     logs: LogEntry[];
@@ -18,19 +18,19 @@ const LEVEL_COLORS: Record<string, string> = {
     F: '#cba6f7', // mauve
 };
 
+const MAX_LOG_LENGTH = 200;
+
 export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize, virtualizer }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [isHovering, setIsHovering] = useState(false);
     const isDragging = useRef(false);
-    const [tick, setTick] = useState(0); // Force redraw on resize
+    const [tick, setTick] = useState(0);
 
-    // Handle Resize to redraw canvas
+    // Handle Resize to trigger redraw
     useEffect(() => {
         if (!containerRef.current) return;
-        const observer = new ResizeObserver(() => {
-            setTick(t => t + 1);
-        });
+        const observer = new ResizeObserver(() => setTick(t => t + 1));
         observer.observe(containerRef.current);
         return () => observer.disconnect();
     }, []);
@@ -47,104 +47,84 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
         const { clientWidth, clientHeight } = container;
         canvas.width = clientWidth;
         canvas.height = clientHeight;
-
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Simple approximation: draw every log as a small line
-        // We map the total scrollable height (totalSize) to the canvas height (clientHeight)
+        // Use the virtualizer's estimate to calculate pixel-based Y positions.
+        // This keeps the minimap's coordinate system consistent with the scroll system.
+        // For any item, its estimated pixel offset = index * estimateSize.
+        // We then scale this to the canvas height using totalSize.
+        const estimateSize = virtualizer.options.estimateSize(0);
         const scale = clientHeight / totalSize;
-        const MAX_LOG_LENGTH = 200;
 
         logs.forEach((log, index) => {
-            const color = LEVEL_COLORS[log.level] || '#a6adc8';
-            ctx.fillStyle = color;
+            ctx.fillStyle = LEVEL_COLORS[log.level] || '#a6adc8';
 
-            // Use virtualizer offset for exact Y position based on variable row heights
-            const offset = virtualizer.getOffsetForIndex(index);
-            // Use estimateSize for height. 
-            // Note: If the item hasn't been rendered, precision might be off, but it's better than fixed height.
-            const size = virtualizer.options.estimateSize(index);
+            // Pixel-offset-based positioning using estimated row height
+            const y = index * estimateSize * scale;
+            const height = Math.max(1, estimateSize * scale);
 
-            const y = offset * scale;
-            const height = Math.max(1, size * scale);
-
-            // Calculate width based on message length
-            // Min width 20% to ensuring visibility
+            // Width proportional to message length
             const lengthRatio = Math.min(1, Math.max(0.2, log.message.length / MAX_LOG_LENGTH));
             const width = lengthRatio * clientWidth;
 
             ctx.fillRect(0, y, width, height);
         });
+    }, [logs, tick, totalSize, virtualizer]);
 
-    }, [logs, tick, totalSize, virtualizer]); // Redraw on log change or resize
-
-    // Viewport Indicator Overlay
+    // Viewport indicator
     const [viewportState, setViewportState] = useState({ top: 0, height: 0 });
 
-    const updateViewport = () => {
-        if (!scrollElement || totalSize === 0) return;
-        const { scrollTop, clientHeight } = scrollElement;
+    const updateViewport = useCallback(() => {
+        if (!scrollElement || totalSize === 0 || !containerRef.current) return;
+        const { scrollTop, clientHeight: viewHeight } = scrollElement;
+        const minimapHeight = containerRef.current.clientHeight;
 
-        const minimapHeight = containerRef.current?.clientHeight || 0;
-
-        // Map exact scroll pixels to minimap pixels
+        // Both use totalSize as the denominator, so viewport aligns with items
         const viewportTop = (scrollTop / totalSize) * minimapHeight;
-        const viewportHeight = (clientHeight / totalSize) * minimapHeight;
+        const viewportHeight = (viewHeight / totalSize) * minimapHeight;
 
         setViewportState({
             top: viewportTop,
-            height: Math.max(viewportHeight, 4) // Minimum visibility
+            height: Math.max(viewportHeight, 4),
         });
-    };
+    }, [scrollElement, totalSize]);
 
     useEffect(() => {
         if (!scrollElement) return;
+        const onScroll = () => requestAnimationFrame(updateViewport);
+        scrollElement.addEventListener('scroll', onScroll);
+        updateViewport();
+        return () => scrollElement.removeEventListener('scroll', onScroll);
+    }, [scrollElement, updateViewport, logs.length, tick]);
 
-        const handleScroll = () => {
-            requestAnimationFrame(updateViewport);
-        };
-
-        scrollElement.addEventListener('scroll', handleScroll);
-        updateViewport(); // Initial
-
-        return () => scrollElement.removeEventListener('scroll', handleScroll);
-    }, [scrollElement, totalSize, logs.length, tick]); // Update when layout changes
-
-
+    // Click / drag to scroll
     const handleMouseDown = (e: React.MouseEvent) => {
         e.preventDefault();
         isDragging.current = true;
 
-        // Initial jump
         const container = containerRef.current;
         const element = scrollElement;
         if (!container || !element) return;
 
-        const rect = container.getBoundingClientRect();
-        const clickY = e.clientY - rect.top;
-        const percentage = Math.max(0, Math.min(clickY / rect.height, 1));
-
-        // Scroll to that percentage of TOTAL content
-        element.scrollTop = percentage * (element.scrollHeight - element.clientHeight);
-
-        const handleMouseMove = (e: MouseEvent) => {
-            if (!isDragging.current) return;
-
+        const jumpTo = (clientY: number) => {
             const rect = container.getBoundingClientRect();
-            const relativeY = e.clientY - rect.top;
-            const percentage = Math.max(0, Math.min(relativeY / rect.height, 1));
-
-            element.scrollTop = percentage * (element.scrollHeight - element.clientHeight);
+            const pct = Math.max(0, Math.min((clientY - rect.top) / rect.height, 1));
+            element.scrollTop = pct * (element.scrollHeight - element.clientHeight);
         };
 
-        const handleMouseUp = () => {
+        jumpTo(e.clientY);
+
+        const onMove = (ev: MouseEvent) => {
+            if (isDragging.current) jumpTo(ev.clientY);
+        };
+        const onUp = () => {
             isDragging.current = false;
-            globalThis.removeEventListener('mousemove', handleMouseMove);
-            globalThis.removeEventListener('mouseup', handleMouseUp);
+            globalThis.removeEventListener('mousemove', onMove);
+            globalThis.removeEventListener('mouseup', onUp);
         };
 
-        globalThis.addEventListener('mousemove', handleMouseMove);
-        globalThis.addEventListener('mouseup', handleMouseUp);
+        globalThis.addEventListener('mousemove', onMove);
+        globalThis.addEventListener('mouseup', onUp);
     };
 
     return (
