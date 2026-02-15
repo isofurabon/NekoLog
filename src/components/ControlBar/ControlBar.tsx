@@ -50,8 +50,9 @@ const HoverHint = ({
     </AnimatePresence>
 );
 
-/** Loading progress bar shown while a file is being read */
-const FileLoadingBar = ({
+/** Loading state content — filename, percentage, and cancel button.
+ *  The actual progress fill is rendered as a background layer in the main container. */
+const FileLoadingContent = ({
     fileName,
     progress,
     onCancel,
@@ -65,32 +66,38 @@ const FileLoadingBar = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="w-full flex items-center gap-3 px-2"
+        className="w-full flex items-center gap-3 px-2 relative z-10"
     >
-        <FileText size={18} className="text-blue-400 shrink-0" />
-        <div className="flex-1 flex flex-col justify-center gap-1">
-            <div className="text-xs text-gray-400 flex justify-between">
-                <span className="truncate max-w-[300px]">{fileName}</span>
-                <span>{progress}%</span>
-            </div>
-            <div className="h-1 w-full bg-surface0 rounded-full overflow-hidden">
-                <motion.div
-                    className="h-full bg-blue-500"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
-                    transition={{ ease: "linear" }}
-                />
-            </div>
+        <FileText size={18} className="text-blue-200 shrink-0" />
+        <div className="flex-1 flex items-center justify-between gap-2">
+            <span className="text-sm font-medium text-blue-100 truncate max-w-[400px]">
+                {fileName}
+            </span>
+            <span className="text-xs text-blue-200/80 tabular-nums shrink-0">
+                {progress}%
+            </span>
         </div>
         <button
             type="button"
             onClick={onCancel}
-            className="p-1 hover:bg-red-500/20 hover:text-red-400 rounded-full transition-colors"
+            className="p-1 hover:bg-white/10 text-blue-200/60 hover:text-red-300 rounded-full transition-colors"
         >
             <X size={16} />
         </button>
     </motion.div>
 );
+
+/** Background fill that represents loading progress inside the control bar */
+const ProgressFill = ({ progress }: { progress: number }) => {
+    const mappedProgress = Math.pow(progress / 100, 0.5) * 100;
+
+    return (<motion.div
+        className="absolute inset-0 rounded-xl bg-blue-500/90"
+        initial={{ clipPath: 'inset(0 100% 0 0)' }}
+        animate={{ clipPath: `inset(0 ${100 - mappedProgress}% 0 0)` }}
+        transition={{ ease: 'linear', duration: 0.15 }}
+    />);
+};
 
 /** Collapsed file-mode state showing filename with hover-to-filter hint */
 const FileModeCollapsed = ({
@@ -236,7 +243,7 @@ export const ControlBar = ({
         // 1) File loading in progress
         if (isViewingFile && isExpanded && isLoadingFile) {
             return (
-                <FileLoadingBar
+                <FileLoadingContent
                     fileName={currentFileName}
                     progress={loadingProgress}
                     onCancel={handleCancelLoading}
@@ -323,19 +330,24 @@ export const ControlBar = ({
                     layout
                     initial={false}
                     animate={{
-                        backgroundColor: "rgba(49, 50, 68, 0.9)",
+                        backgroundColor: isLoadingFile ? "rgba(30, 40, 70, 0.95)" : "rgba(49, 50, 68, 0.9)",
                         paddingLeft: 16,
                         paddingRight: 16,
                     }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     className={clsx(
-                        "shadow-xl backdrop-blur-md border border-white/10 flex items-center relative z-20",
-                        isExpanded
-                            ? "w-[600px] h-12 rounded-xl overflow-visible"
-                            : "w-auto h-10 rounded-full hover:bg-surface1 cursor-pointer active:scale-95 overflow-hidden"
+                        "shadow-xl backdrop-blur-md border flex items-center relative z-20",
+                        isLoadingFile
+                            ? "w-[600px] h-12 rounded-xl overflow-hidden border-blue-500/30"
+                            : isExpanded
+                                ? "w-[600px] h-12 rounded-xl overflow-visible border-white/10"
+                                : "w-auto h-10 rounded-full hover:bg-surface1 cursor-pointer active:scale-95 overflow-hidden border-white/10"
                     )}
                     onClick={!isExpanded && !isViewingFile ? (isConnected ? toggleExpand : onConnect) : undefined}
                 >
+                    {/* Progress fill background — only visible during loading */}
+                    {isLoadingFile && <ProgressFill progress={loadingProgress} />}
+
                     <AnimatePresence mode="wait" initial={false}>
                         {renderBarContent()}
                     </AnimatePresence>
