@@ -160,18 +160,34 @@ export const ControlBar = ({
     const loadingProgress = useAtomValue(loadingProgressAtom);
     const cancelFileLoad = useSetAtom(cancelFileLoadAtom);
 
-    // Click outside to collapse
-    const handleCollapse = useCallback(() => setIsExpanded(false), []);
+    // Click outside to collapse (but not while loading)
+    const handleCollapse = useCallback(() => {
+        if (!isLoadingFile) setIsExpanded(false);
+    }, [isLoadingFile]);
     useClickOutside(containerRef, handleCollapse, isExpanded);
+
+    // Reliably focus the search input after expand animation
+    const focusSearchInput = useCallback(() => {
+        // Try immediately, then retry until the input is available
+        const tryFocus = (attempts = 0) => {
+            if (inputRef.current) {
+                inputRef.current.focus();
+            } else if (attempts < 10) {
+                setTimeout(() => tryFocus(attempts + 1), 50);
+            }
+        };
+        // Initial delay to let React render cycle complete
+        setTimeout(() => tryFocus(), 50);
+    }, []);
 
     // Keyboard shortcut Cmd/Ctrl+K & Escape
     useEffect(() => {
         const handleGlobalKeyDown = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
                 e.preventDefault();
-                if (isConnected || isViewingFile) {
+                if ((isConnected || isViewingFile) && !isLoadingFile) {
                     setIsExpanded(true);
-                    setTimeout(() => inputRef.current?.focus(), 100);
+                    focusSearchInput();
                 }
             }
             if (e.key === 'Escape' && isExpanded) {
@@ -180,20 +196,20 @@ export const ControlBar = ({
         };
         globalThis.addEventListener('keydown', handleGlobalKeyDown);
         return () => globalThis.removeEventListener('keydown', handleGlobalKeyDown);
-    }, [isExpanded, isConnected, isViewingFile]);
+    }, [isExpanded, isConnected, isViewingFile, isLoadingFile, focusSearchInput]);
 
-    const toggleExpand = (e?: React.MouseEvent) => {
+    const toggleExpand = useCallback((e?: React.MouseEvent) => {
         e?.stopPropagation();
         e?.preventDefault();
         if (!isExpanded) {
             setIsExpanded(true);
-            setTimeout(() => inputRef.current?.focus(), 100);
+            focusSearchInput();
         }
-    };
+    }, [isExpanded, focusSearchInput]);
 
-    const handleCloseSearch = () => {
+    const handleCloseSearch = useCallback(() => {
         setIsExpanded(false);
-    };
+    }, []);
 
     const handleCancelLoading = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -201,12 +217,18 @@ export const ControlBar = ({
     };
 
     // Auto-expand/collapse based on loading state
+    // When loading starts → expand to show progress bar
+    // When loading finishes → collapse to show filename
+    const prevIsLoadingRef = useRef(false);
     useEffect(() => {
-        if (isLoadingFile) {
+        if (isLoadingFile && !prevIsLoadingRef.current) {
+            // Loading just started → expand
             setIsExpanded(true);
-        } else if (!isLoadingFile && isViewingFile) {
+        } else if (!isLoadingFile && prevIsLoadingRef.current && isViewingFile) {
+            // Loading just finished → collapse to show filename
             setIsExpanded(false);
         }
+        prevIsLoadingRef.current = isLoadingFile;
     }, [isLoadingFile, isViewingFile]);
 
     // Determine the content to render inside the bar
@@ -314,7 +336,7 @@ export const ControlBar = ({
                     )}
                     onClick={!isExpanded && !isViewingFile ? (isConnected ? toggleExpand : onConnect) : undefined}
                 >
-                    <AnimatePresence mode="wait">
+                    <AnimatePresence initial={false}>
                         {renderBarContent()}
                     </AnimatePresence>
                 </motion.div>
