@@ -1,9 +1,27 @@
-/// <reference types="@types/w3c-web-usb" />
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AdbDaemonWebUsbDeviceManager } from '@yume-chan/adb-daemon-webusb';
 import { Adb, AdbDaemonTransport } from '@yume-chan/adb';
 import AdbWebCredentialStore from '@yume-chan/adb-credential-web';
-import { generateMockLog } from '../utils/mock.ts';
+
+// Mock data generator
+const generateMockLog = () => {
+    const levels = ['D', 'I', 'W', 'E', 'V'];
+    const level = levels[Math.floor(Math.random() * levels.length)];
+    const tags = ['ActivityManager', 'WindowManager', 'NekoService', 'SystemUI'];
+    const tag = tags[Math.floor(Math.random() * tags.length)];
+    const timestamp = new Date().toISOString().slice(5, 23).replace('T', ' ');
+    const pid = Math.floor(Math.random() * 10000);
+    const tid = Math.floor(Math.random() * 10000);
+
+    const baseMessage = 'This is a mock log message ';
+    const messageNumber = Math.floor(Math.random() * 1000);
+
+    // Generate variable length content
+    const length = Math.floor(Math.random() * 200); // 0 to 200 extra chars
+    const extraContent = 'x'.repeat(length);
+
+    return `${timestamp} ${pid} ${tid} ${level} ${tag}: ${baseMessage}#${messageNumber} ${extraContent}\n`;
+};
 
 export function useAdb(onData: (chunk: ArrayBuffer) => void) {
     const [, setDevice] = useState<Adb | null>(null);
@@ -22,7 +40,9 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
             setDeviceName(null);
         };
 
-        const usb = navigator.usb;
+        // WebUSB types aren't in default TypeScript lib
+        // deno-lint-ignore no-explicit-any
+        const usb = (navigator as any).usb as EventTarget | undefined;
         if (!usb) return;
 
         usb.addEventListener('disconnect', handleDisconnect);

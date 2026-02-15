@@ -65,7 +65,6 @@
         "@types/node": "npm:@types/node@^24.10.1",
         "@types/react": "npm:@types/react@^19.2.5",
         "@types/react-dom": "npm:@types/react-dom@^19.2.3",
-        "@types/w3c-web-usb": "npm:@types/w3c-web-usb@^1.0.10",
         "@std/path": "jsr:@std/path@^1.0.8",
         "storybook": "npm:storybook@^8.5.3",
         "@storybook/react": "npm:@storybook/react@^8.5.3",

@@ -5,44 +5,11 @@ const decoder = new TextDecoder();
 
 // Standard `threadtime` format regex
 // Date Time PID TID Level Tag: Message
-export const LOG_REGEX = /^(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\.\d{3})\s+(\d+)\s+(\d+)\s+([VDIWEF])\s+(.*?):\s+(.*)$/;
-
-export function parseLogLine(line: string): Omit<LogEntry, 'id'> | null {
-    if (!line.trim()) return null;
-
-    const match = line.match(LOG_REGEX);
-    if (match) {
-        const [, timestamp, pid, tid, level, tag, message] = match;
-        return {
-            timestamp,
-            pid,
-            tid,
-            level: level as LogLevel,
-            tag: tag.trim(),
-            message: message.trim(),
-        };
-    } else {
-        // Fallback for lines that don't match (e.g. stack traces often don't have headers)
-        // For now, treat them as part of the previous log or generic info?
-        // Let's create a raw log entry for now to avoid losing data
-        // Or if we have a previous log, append to its message?
-        // Simpler approach for v1: Create a System/Info log
-        const now = new Date();
-        const timestamp = now.toISOString().slice(5, 23).replace('T', ' ');
-        return {
-            timestamp,
-            pid: '?',
-            tid: '?',
-            level: 'I',
-            tag: 'System',
-            message: line,
-        };
-    }
-}
+const LOG_REGEX = /^(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\.\d{3})\s+(\d+)\s+(\d+)\s+([VDIWEF])\s+(.*?):\s+(.*)$/;
 
 export const MAX_BUFFER_SIZE = 10 * 1024 * 1024; // 10MB
 
-function parseLogLine(line: string): LogEntry | null {
+function parseWorkerLogLine(line: string): LogEntry | null {
     if (!line.trim()) return null;
 
     const match = line.match(LOG_REGEX);
@@ -112,7 +79,7 @@ export function processChunk(text: string, currentBuffer: string): { logs: LogEn
             lines.pop();
 
             for (const line of lines) {
-                const parsed = parseLogLine(line);
+                const parsed = parseWorkerLogLine(line);
                 if (parsed) logs.push(parsed);
             }
 
@@ -125,7 +92,7 @@ export function processChunk(text: string, currentBuffer: string): { logs: LogEn
     const nextBuffer = lines.pop() || '';
 
     for (const line of lines) {
-        const parsed = parseLogLine(line);
+        const parsed = parseWorkerLogLine(line);
         if (parsed) logs.push(parsed);
     }
 

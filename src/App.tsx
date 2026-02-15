@@ -3,6 +3,7 @@ import { ControlBar } from '@/components/ControlBar/ControlBar.tsx';
 
 import { useLogWorker } from '@/hooks/useLogWorker.ts';
 import { useAdb } from '@/hooks/useAdb.ts';
+import './App.css';
 
 function App() {
   const { addChunk, clearLogs } = useLogWorker();

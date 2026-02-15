@@ -30,11 +30,7 @@ export const filteredLogsAtom = atom((get) => {
             const value = log[field as keyof LogEntry];
             // For level, use exact match
             if (field === 'level') {
-                return (typeof value === 'string' ? value : String(value)).toLowerCase() === filterText;
-            }
-
-            if (typeof value === 'string') {
-                return value.toLowerCase().includes(filterText);
+                return value.toLowerCase() === filterText;
             }
             return String(value).toLowerCase().includes(filterText);
         })
