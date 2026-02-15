@@ -19,7 +19,7 @@
         "rebuild": "deno task clean && deno task build",
         // Linting & Hygiene
         "lint": "deno lint",
-        "clean": "rm -rf dist bin playwright-report test-results .vite",
+        "clean": "deno run -A npm:rimraf@^6.1.2 dist bin playwright-report test-results .vite",
         // Compilation
         "compile": "deno compile --allow-read --allow-env --allow-run --allow-sys --allow-net=0.0.0.0,127.0.0.1,localhost --include dist --output bin/nekolog server.ts",
         "compile:win": "deno compile --allow-read --allow-env --allow-run --allow-sys --allow-net=0.0.0.0,127.0.0.1,localhost --include dist --output bin/win/nekolog.exe --target x86_64-pc-windows-msvc server.ts",
