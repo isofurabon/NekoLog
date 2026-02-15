@@ -336,7 +336,7 @@ export const ControlBar = ({
                     )}
                     onClick={!isExpanded && !isViewingFile ? (isConnected ? toggleExpand : onConnect) : undefined}
                 >
-                    <AnimatePresence initial={false}>
+                    <AnimatePresence mode="wait" initial={false}>
                         {renderBarContent()}
                     </AnimatePresence>
                 </motion.div>

@@ -86,6 +86,28 @@ export function useAdb(onData: (chunk: ArrayBuffer) => void) {
         const MAX_RETRIES = 3;
         const RETRY_DELAY_MS = 500;
 
+        // Clean up any stale state from previous connection (e.g. after browser reload)
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+        }
+        if (deviceRef.current) {
+            try {
+                await deviceRef.current.transport.close();
+            } catch {
+                // Ignore errors from stale connections
+            }
+            deviceRef.current = null;
+        }
+        setDevice(null);
+        setIsConnected(false);
+        setDeviceName(null);
+        // Stop mock if running (use ref directly to avoid forward-reference)
+        if (mockInterval.current) {
+            clearTimeout(mockInterval.current);
+            mockInterval.current = null;
+        }
+
         const Manager = AdbDaemonWebUsbDeviceManager.BROWSER;
         if (!Manager) {
             alert('WebUSB is not supported in this browser');
