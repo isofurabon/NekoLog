@@ -62,6 +62,7 @@ export const LogList = () => {
                     logs={logs}
                     scrollElement={scrollElement}
                     totalSize={rowVirtualizer.getTotalSize()}
+                    virtualizer={rowVirtualizer}
                 />
                 <div
                     ref={setScrollElement}

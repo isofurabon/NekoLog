@@ -1,10 +1,12 @@
 import React, { useRef, useEffect, useState } from 'react';
 import type { LogEntry } from '@/types';
+import { Virtualizer } from '@tanstack/react-virtual';
 
 interface MinimapProps {
     logs: LogEntry[];
     scrollElement: HTMLDivElement | null;
     totalSize: number;
+    virtualizer: Virtualizer<HTMLDivElement, Element>;
 }
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -16,7 +18,7 @@ const LEVEL_COLORS: Record<string, string> = {
     F: '#cba6f7', // mauve
 };
 
-export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize }) => {
+export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize, virtualizer }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [isHovering, setIsHovering] = useState(false);
@@ -37,7 +39,7 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
     useEffect(() => {
         const canvas = canvasRef.current;
         const container = containerRef.current;
-        if (!canvas || !container || logs.length === 0) return;
+        if (!canvas || !container || logs.length === 0 || totalSize === 0) return;
 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
@@ -49,25 +51,32 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // Simple approximation: draw every log as a small line
-        // If logs.length > clientHeight, we are effectively downsampling
-        const itemHeight = Math.max(1, clientHeight / logs.length);
+        // We map the total scrollable height (totalSize) to the canvas height (clientHeight)
+        const scale = clientHeight / totalSize;
         const MAX_LOG_LENGTH = 200;
 
         logs.forEach((log, index) => {
             const color = LEVEL_COLORS[log.level] || '#a6adc8';
             ctx.fillStyle = color;
 
-            const y = (index / logs.length) * clientHeight;
+            // Use virtualizer offset for exact Y position based on variable row heights
+            const offset = virtualizer.getOffsetForIndex(index);
+            // Use estimateSize for height. 
+            // Note: If the item hasn't been rendered, precision might be off, but it's better than fixed height.
+            const size = virtualizer.options.estimateSize(index);
+
+            const y = offset * scale;
+            const height = Math.max(1, size * scale);
 
             // Calculate width based on message length
             // Min width 20% to ensuring visibility
             const lengthRatio = Math.min(1, Math.max(0.2, log.message.length / MAX_LOG_LENGTH));
             const width = lengthRatio * clientWidth;
 
-            ctx.fillRect(0, y, width, itemHeight);
+            ctx.fillRect(0, y, width, height);
         });
 
-    }, [logs, tick]); // Redraw on log change or resize
+    }, [logs, tick, totalSize, virtualizer]); // Redraw on log change or resize
 
     // Viewport Indicator Overlay
     const [viewportState, setViewportState] = useState({ top: 0, height: 0 });
@@ -116,9 +125,6 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
         const percentage = Math.max(0, Math.min(clickY / rect.height, 1));
 
         // Scroll to that percentage of TOTAL content
-        // element.scrollHeight should be approx totalSize (from virtualizer)
-        // But let's use element.scrollHeight to be safe as that's what scrollTop operates on
-        // Wait, virtualizer sets a spacer div with height=totalSize. So scrollHeight IS totalSize.
         element.scrollTop = percentage * (element.scrollHeight - element.clientHeight);
 
         const handleMouseMove = (e: MouseEvent) => {
