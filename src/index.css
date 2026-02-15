@@ -124,6 +124,17 @@ body {
   min-height: 100vh;
 }
 
+/* Hide scrollbar for elements that use custom minimap */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /* IE and Edge */
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Marquee animation for overflowing text - infinite one-direction scroll */
 @keyframes marquee-infinite {
   0% {
