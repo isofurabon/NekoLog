@@ -77,15 +77,19 @@ export const ControlBar = ({
         setIsLoadingFile(false);
     };
 
-    // If viewing file, we might want to auto-expand to show progress, or just show it in collapsed state?
-    // Requirement: "when opening file, control bar is expanded and loading progress will be shown in control bar"
+    // Auto-expand/collapse logic
     useEffect(() => {
         if (isLoadingFile) {
             setIsExpanded(true);
+        } else if (!isLoadingFile && isViewingFile) {
+            // Loading finished, collapse to show filename
+            setIsExpanded(false);
         }
-    }, [isLoadingFile]);
+    }, [isLoadingFile, isViewingFile]);
+
 
     return (
+
         <div className="absolute top-8 left-0 right-0 z-50 flex flex-col items-center pointer-events-none">
             <div
                 ref={containerRef}
@@ -138,40 +142,47 @@ export const ControlBar = ({
                                     </div>
                                 </div>
                                 <button
+                                    type="button"
                                     onClick={handleCancelLoading}
                                     className="p-1 hover:bg-red-500/20 hover:text-red-400 rounded-full transition-colors"
                                 >
                                     <X size={16} />
                                 </button>
+
                             </motion.div>
                         ) : isViewingFile ? (
-                            // File Mode (Loaded or Collapsed Loading)
-                            <motion.div
-                                key="file-mode"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="flex items-center gap-2 justify-center w-full"
-                                onClick={toggleExpand}
-                            >
-                                <FileText size={14} className="text-blue-400 shrink-0" />
-                                <span className="text-sm font-medium text-blue-100 truncate max-w-[400px]">
-                                    {currentFileName}
-                                </span>
-                                {isExpanded && (
-                                    <motion.div
-                                        initial={{ opacity: 0, width: 0 }}
-                                        animate={{ opacity: 1, width: 'auto' }}
-                                        className="border-l border-white/10 pl-3 ml-1 flex-1"
-                                    >
-                                        <LogSearch
-                                            onClose={handleCloseSearch}
-                                            inputRef={inputRef}
-                                        />
-                                    </motion.div>
-                                )}
-                            </motion.div>
-
+                            // File Mode
+                            // If expandable (search open), show search. If collapsed, show file info.
+                            // User requirement: "you don't need to show the filename when expanding the control bar (during filter input)"
+                            !isExpanded ? (
+                                <motion.div
+                                    key="file-mode-info"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="flex items-center gap-2 justify-center w-full"
+                                    onClick={toggleExpand}
+                                >
+                                    <FileText size={14} className="text-blue-400 shrink-0" />
+                                    <span className="text-sm font-medium text-blue-100 truncate max-w-[400px]">
+                                        {currentFileName}
+                                    </span>
+                                </motion.div>
+                            ) : (
+                                <motion.div
+                                    key="file-mode-search"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="w-full h-full"
+                                >
+                                    <LogSearch
+                                        onClose={handleCloseSearch}
+                                        inputRef={inputRef}
+                                    />
+                                </motion.div>
+                            )
                         ) : !isExpanded ? (
                             // Standard Collapsed State
                             <div className="relative h-full flex items-center justify-center">
@@ -252,7 +263,7 @@ export const ControlBar = ({
                     onClear={onClear}
                     isHovered={isHovered || isLoadingFile} // Keep actions visible during loading if needed, or maybe not? Spec doesn't say.
                 />
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };

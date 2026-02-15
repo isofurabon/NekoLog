@@ -3,7 +3,8 @@ import { ControlBar } from '@/components/ControlBar/ControlBar.tsx';
 
 import { useLogWorker } from '@/hooks/useLogWorker.ts';
 import { useAdb } from '@/hooks/useAdb.ts';
-import { useSetAtom } from 'jotai';
+import { useSetAtom, useAtom } from 'jotai';
+
 import { isViewingFileAtom, currentFileNameAtom, isLoadingFileAtom, loadingProgressAtom } from '@/store';
 import { useCallback, useState } from 'react';
 
@@ -15,8 +16,9 @@ function App() {
   const { connect, isConnected, deviceName, startMock } = useAdb(addChunk);
 
   const [isDragging, setIsDragging] = useState(false);
-  const setIsViewingFile = useSetAtom(isViewingFileAtom);
+  const [isViewingFile, setIsViewingFile] = useAtom(isViewingFileAtom);
   const setCurrentFileName = useSetAtom(currentFileNameAtom);
+
   const setIsLoadingFile = useSetAtom(isLoadingFileAtom);
   const setLoadingProgress = useSetAtom(loadingProgressAtom);
 
@@ -32,7 +34,8 @@ function App() {
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
+
     e.preventDefault();
     setIsDragging(false);
 
@@ -116,7 +119,8 @@ function App() {
       />
 
       {/* Demo Actions (Hidden/Subtle) */}
-      {!isConnected && (
+      {!isConnected && !isViewingFile && (
+
         <div className="absolute top-40 left-1/2 -translate-x-1/2 z-10 text-xs text-gray-600">
           <button type="button"
             onClick={startMock}

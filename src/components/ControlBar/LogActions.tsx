@@ -55,9 +55,11 @@ export const LogActions = ({ isExpanded, onClear, isHovered }: LogActionsProps) 
     // New handler for Clear/Trash
     const handleClear = () => {
         onClear();
+
         setIsViewingFile(false);
         setCurrentFileName(null);
     };
+
 
 
     const handleDownload = () => {
