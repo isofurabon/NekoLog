@@ -1,33 +1,27 @@
 {
     "lock": true,
     "tasks": {
-        // Development
         "dev": "deno run -A vite",
         "start": "deno run --allow-read --allow-env --allow-run --allow-sys --allow-net=0.0.0.0,127.0.0.1,localhost server.ts",
         "preview": "deno run -A vite preview",
         "storybook": "deno run -A npm:storybook@^8.5.3 dev -p 6006",
-        // Testing
         "test": "deno task lint && deno task test:unit && deno task build",
         "test:unit": "deno run -A vitest run",
         "test:watch": "deno run -A vitest",
         "test:e2e": "deno run -A npm:@playwright/test@^1.52.0 test",
         "test:e2e:ui": "deno run -A npm:@playwright/test@^1.52.0 test --ui",
         "test:all": "deno task test:unit && deno task test:e2e",
-        // Building
         "build": "deno task build:licenses && deno run -A vite build",
         "build:licenses": "deno run -A scripts/generate_licenses.ts",
         "rebuild": "deno task clean && deno task build",
-        // Linting & Hygiene
         "lint": "deno lint",
         "clean": "deno run -A npm:rimraf@^6.1.2 dist bin playwright-report test-results .vite",
-        // Compilation
         "compile": "deno compile --allow-read --allow-env --allow-run --allow-sys --allow-net=0.0.0.0,127.0.0.1,localhost --include dist --output bin/nekolog server.ts",
         "compile:win": "deno compile --allow-read --allow-env --allow-run --allow-sys --allow-net=0.0.0.0,127.0.0.1,localhost --include dist --output bin/win/nekolog.exe --target x86_64-pc-windows-msvc server.ts",
         "compile:mac": "deno compile --allow-read --allow-env --allow-run --allow-sys --allow-net=0.0.0.0,127.0.0.1,localhost --include dist --output bin/mac/nekolog --target x86_64-apple-darwin server.ts",
         "compile:mac-arm": "deno compile --allow-read --allow-env --allow-run --allow-sys --allow-net=0.0.0.0,127.0.0.1,localhost --include dist --output bin/mac-arm/nekolog --target aarch64-apple-darwin server.ts",
         "compile:linux": "deno compile --allow-read --allow-env --allow-run --allow-sys --allow-net=0.0.0.0,127.0.0.1,localhost --include dist --output bin/linux/nekolog --target x86_64-unknown-linux-gnu server.ts",
         "compile:all": "deno task compile:win && deno task compile:mac && deno task compile:mac-arm && deno task compile:linux",
-        // CI
         "ci": "dagger call -m dagger ci --source ."
     },
     "imports": {
