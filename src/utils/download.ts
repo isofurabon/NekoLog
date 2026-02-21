@@ -17,7 +17,7 @@ export function downloadLogs(logs: LogEntry[], options: DownloadOptions = {}) {
   const defaultFileName = `nekolog_${formatDate(new Date())}`;
   const fileName = (options.fileName || defaultFileName) + (options.fileName?.endsWith(`.${format}`) ? '' : `.${format}`);
 
-  let blobParts: BlobPart[] = [];
+  const blobParts: BlobPart[] = [];
   let mimeType = '';
 
   if (format === 'json') {
