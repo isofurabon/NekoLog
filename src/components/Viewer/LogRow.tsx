@@ -2,6 +2,7 @@ import { memo } from 'react';
 import type { LogEntry } from '@/types';
 import { getLevelColor, getBgHoverColor } from '@/utils/color.ts';
 import { ColumnWidths } from '@/constants/layout.ts';
+import type { SearchableField } from '@/constants/search.ts';
 import { clsx } from 'clsx';
 
 interface LogRowProps {
@@ -10,6 +11,7 @@ interface LogRowProps {
     style: React.CSSProperties; // For virtualization
     measureRef?: (element: HTMLElement | null) => void;
     filterText?: string;
+    includedFields?: SearchableField[];
 }
 
 const HighlightedText = ({ text, highlight }: { text: string; highlight?: string }) => {
@@ -30,7 +32,7 @@ const HighlightedText = ({ text, highlight }: { text: string; highlight?: string
     );
 };
 
-export const LogRow = memo(({ log, index, style, measureRef, filterText }: LogRowProps) => {
+export const LogRow = memo(({ log, index, style, measureRef, filterText, includedFields }: LogRowProps) => {
     const colorClass = getLevelColor(log.level);
     const hoverClass = getBgHoverColor(log.level);
 
@@ -46,24 +48,29 @@ export const LogRow = memo(({ log, index, style, measureRef, filterText }: LogRo
             )}
         >
             {/* Timestamp */}
-            <span style={{ width: ColumnWidths.Timestamp }} className="shrink-0 select-text text-left line-clamp-1">{log.timestamp}</span>
+            <span style={{ width: ColumnWidths.Timestamp }} className="shrink-0 select-text text-left line-clamp-1">
+                <HighlightedText text={String(log.timestamp)} highlight={includedFields?.includes('timestamp') ? filterText : undefined} />
+            </span>
 
             {/* PID/TID */}
             <span style={{ width: ColumnWidths.PidTid }} className="shrink-0 select-text hidden text-left sm:inline-block">
-                {log.pid}/{log.tid}
+                <HighlightedText text={String(log.pid)} highlight={includedFields?.includes('pid') ? filterText : undefined} />/
+                <HighlightedText text={String(log.tid)} highlight={includedFields?.includes('tid') ? filterText : undefined} />
             </span>
 
             {/* Level */}
-            <span style={{ width: ColumnWidths.Level }} className="shrink-0 font-bold select-none">{log.level}</span>
+            <span style={{ width: ColumnWidths.Level }} className="shrink-0 font-bold select-none">
+                <HighlightedText text={String(log.level)} highlight={includedFields?.includes('level') ? filterText : undefined} />
+            </span>
 
             {/* Tag */}
             <span style={{ width: ColumnWidths.Tag, marginRight: '2ch' }} className="shrink-0 font-semibold truncate select-text text-right" title={log.tag}>
-                <HighlightedText text={log.tag} highlight={filterText} />:
+                <HighlightedText text={String(log.tag)} highlight={includedFields?.includes('tag') ? filterText : undefined} />:
             </span>
 
             {/* Message */}
             <span className="flex-1 whitespace-pre-wrap break-all select-text text-left leading-relaxed">
-                <HighlightedText text={log.message} highlight={filterText} />
+                <HighlightedText text={String(log.message)} highlight={includedFields?.includes('message') ? filterText : undefined} />
             </span>
         </div>
     );
