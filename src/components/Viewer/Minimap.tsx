@@ -29,6 +29,14 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
     const isDragging = useRef(false);
     const [tick, setTick] = useState(0);
 
+    const [viewportState, setViewportState] = useState({ top: 0, height: 0, minimapScrollTop: 0 });
+    const viewportStateRef = useRef(viewportState);
+
+    // Keep ref in sync for synchronous event handlers
+    useEffect(() => {
+        viewportStateRef.current = viewportState;
+    }, [viewportState]);
+
     // Handle Resize to trigger redraw
     useEffect(() => {
         if (!containerRef.current) return;
@@ -49,9 +57,7 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
         };
     }, []);
 
-    // Draw the minimap — pure index-based coordinate system
-    // Every item is evenly spaced: y = (index / count) * canvasHeight
-    // This always fills the canvas regardless of totalSize changes.
+    // Draw the minimap — pure index-based coordinate system offset by minimapScrollTop
     useEffect(() => {
         const canvas = canvasRef.current;
         const container = containerRef.current;
@@ -67,12 +73,16 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
 
         const count = logs.length;
         const itemHeight = LINE_HEIGHT_PX;
+        const { minimapScrollTop } = viewportState;
 
-        for (let i = 0; i < count; i++) {
+        const startIndex = Math.max(0, Math.floor(minimapScrollTop / LINE_HEIGHT_PX));
+        const endIndex = Math.min(count, Math.ceil((minimapScrollTop + clientHeight) / LINE_HEIGHT_PX));
+
+        for (let i = startIndex; i < endIndex; i++) {
             const log = logs[i];
             ctx.fillStyle = LEVEL_COLORS[log.level] || '#a6adc8';
 
-            const y = i * LINE_HEIGHT_PX;
+            const y = i * LINE_HEIGHT_PX - minimapScrollTop;
 
             // Width proportional to message length
             const lengthRatio = Math.min(1, Math.max(0.2, log.message.length / MAX_LOG_LENGTH));
@@ -80,23 +90,30 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
 
             ctx.fillRect(0, y, width, itemHeight);
         }
-    }, [logs, tick]);
+    }, [logs, tick, viewportState.minimapScrollTop]);
 
     // Viewport indicator — uses virtualizer.getVirtualItems() to find which
     // indices are currently visible, then maps those to the same index-based
-    // coordinate system used for drawing items.
-    const [viewportState, setViewportState] = useState({ top: 0, height: 0 });
-
+    // coordinate system used for drawing items, factoring in the current scroll ratio.
     const updateViewport = useCallback(() => {
         if (!scrollElement || logs.length === 0 || !containerRef.current) return;
 
+        const { clientHeight, scrollHeight, scrollTop } = scrollElement;
+        const maxEditorScrollTop = Math.max(0, scrollHeight - clientHeight);
+        const scrollRatio = maxEditorScrollTop > 0 ? scrollTop / maxEditorScrollTop : 0;
+
+        const minimapScrollHeight = logs.length * LINE_HEIGHT_PX;
+        const maxMinimapScrollTop = Math.max(0, minimapScrollHeight - containerRef.current.clientHeight);
+        const minimapScrollTop = scrollRatio * maxMinimapScrollTop;
+
         // Map indices to the same coordinate system as drawn items
-        const top = visibleLineRange.startIndex * LINE_HEIGHT_PX;
-        const bottom = (visibleLineRange.endIndex + 1) * LINE_HEIGHT_PX;
+        const top = visibleLineRange.startIndex * LINE_HEIGHT_PX - minimapScrollTop;
+        const bottom = (visibleLineRange.endIndex + 1) * LINE_HEIGHT_PX - minimapScrollTop;
 
         setViewportState({
             top,
             height: Math.max(bottom - top, 4),
+            minimapScrollTop
         });
     }, [scrollElement, logs.length, visibleLineRange]);
 
@@ -117,17 +134,32 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
         isDragging.current = true;
 
         const container = containerRef.current;
-        if (!container) return;
-
+        if (!container || !scrollElement) return;
 
         const jumpTo = (clientY: number) => {
             const rect = container.getBoundingClientRect();
-            const pct = Math.max(0, Math.min((clientY - rect.top) / rect.height, 1));
+            const clickY = Math.max(0, Math.min(clientY - rect.top, rect.height));
 
-            const linesInRect = rect.height / LINE_HEIGHT_PX;
-            // Map percentage to an item index and scroll there
-            const targetIndex = Math.floor(pct * linesInRect);
-            virtualizer.scrollToIndex(targetIndex, { align: 'center' });
+            const minimapScrollHeight = logs.length * LINE_HEIGHT_PX;
+
+            if (minimapScrollHeight <= rect.height) {
+                // If minimap content fits entirely, just jump safely by mapped line
+                const targetIndex = Math.floor(clickY / LINE_HEIGHT_PX);
+                virtualizer.scrollToIndex(Math.max(0, Math.min(targetIndex, logs.length - 1)), { align: 'center' });
+            } else {
+                // Determine layout height
+                const { height: viewportHeight } = viewportStateRef.current;
+                const maxIndicatorTop = rect.height - viewportHeight;
+
+                if (maxIndicatorTop > 0) {
+                    let desiredTop = clickY - viewportHeight / 2;
+                    desiredTop = Math.max(0, Math.min(maxIndicatorTop, desiredTop));
+                    const scrollRatio = desiredTop / maxIndicatorTop;
+
+                    const maxScrollTop = scrollElement.scrollHeight - scrollElement.clientHeight;
+                    scrollElement.scrollTop = scrollRatio * maxScrollTop;
+                }
+            }
         };
 
         jumpTo(e.clientY);
