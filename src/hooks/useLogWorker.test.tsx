@@ -86,6 +86,16 @@ describe('useLogWorker', () => {
         expect(store.get(logsAtom)).toEqual([]);
     });
 
+    it('sends FLUSH command when flushLogs is called', () => {
+        const { wrapper } = createWrapper();
+        const { result } = renderHook(() => useLogWorker(), { wrapper });
+        const worker = mockWorkerInstances[0];
+
+        result.current.flushLogs();
+
+        expect(worker.postMessage).toHaveBeenCalledWith({ type: 'FLUSH' });
+    });
+
     it('updates logsAtom when worker sends NEW_LOGS message', () => {
         const { wrapper, store } = createWrapper();
         renderHook(() => useLogWorker(), { wrapper });
