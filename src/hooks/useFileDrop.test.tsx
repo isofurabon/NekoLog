@@ -110,9 +110,6 @@ describe('useFileDrop', () => {
         // @ts-ignore: Accessing mocked global instance
         const reader = globalThis.lastReaderInstance;
 
-        // We need to spy on the store.set to see if it's called again
-        // const storeSetSpy = vi.spyOn(store, 'set');
-
         if (reader && reader.onload) {
             act(() => {
                 // @ts-ignore: Mocking event structure
