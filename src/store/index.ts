@@ -25,6 +25,9 @@ export const filteredLogsAtom = atom((get) => {
 
     if (!filterText) return logs;
 
+    const escapedFilterText = filterText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedFilterText, 'i');
+
     return logs.filter(log =>
         includedFields.some(field => {
             const value = log[field as keyof LogEntry];
@@ -34,9 +37,9 @@ export const filteredLogsAtom = atom((get) => {
             }
 
             if (typeof value === 'string') {
-                return value.toLowerCase().includes(filterText);
+                return regex.test(value);
             }
-            return String(value).toLowerCase().includes(filterText);
+            return regex.test(String(value));
         })
     );
 });
