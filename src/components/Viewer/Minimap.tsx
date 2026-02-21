@@ -335,15 +335,16 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
                 ref={indicatorRef}
                 className={`
                     absolute left-0 w-full border-y pointer-events-auto
-                    transition-all duration-200
+                    duration-200
                     ${isClamped
-                        ? (isHoveringIndicator ? 'border-red-400 bg-red-500/40 shadow-[0_0_12px_rgba(239,68,68,0.4)]' : 'border-red-400/60 bg-red-500/20')
+                        ? (isHoveringIndicator ? 'border-yellow-400 bg-yellow-500/40 shadow-[0_0_12px_rgba(234,179,8,0.4)]' : 'border-yellow-400/60 bg-yellow-500/20')
                         : (isHoveringIndicator ? 'border-white bg-white/50' : 'border-white/60 bg-white/40')
                     }
                 `}
                 style={{
                     top: 0,
-                    // Use standard inline style for transform performance
+                    // Specific CSS transition to prevent position easing
+                    transitionProperty: 'background-color, border-color, box-shadow',
                     willChange: 'transform, height'
                 }}
                 onMouseEnter={() => setIsHoveringIndicator(true)}
