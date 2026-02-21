@@ -19,6 +19,7 @@ const LEVEL_COLORS: Record<string, string> = {
 };
 
 const MAX_LOG_LENGTH = 200;
+const LINE_HEIGHT_PX = 4; // 4px per log line
 
 export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize, virtualizer }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -64,13 +65,13 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         const count = logs.length;
-        const itemHeight = Math.max(1, clientHeight / count);
+        const itemHeight = LINE_HEIGHT_PX;
 
         for (let i = 0; i < count; i++) {
             const log = logs[i];
             ctx.fillStyle = LEVEL_COLORS[log.level] || '#a6adc8';
 
-            const y = (i / count) * clientHeight;
+            const y = i * LINE_HEIGHT_PX;
 
             // Width proportional to message length
             const lengthRatio = Math.min(1, Math.max(0.2, log.message.length / MAX_LOG_LENGTH));
