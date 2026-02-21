@@ -81,13 +81,24 @@ function useViewportState(
 
         // Clamp visually so the indicator never pushes out of the container bounds
         const containerHeight = containerRef.current.clientHeight;
-        const top = Math.max(0, rawTop);
-        const bottom = Math.min(containerHeight, rawBottom);
-        const height = Math.max(bottom - top, 4);
 
         // Check for clamping
         const isClampedTop = rawTop < 0;
         const isClampedBottom = rawBottom > containerHeight;
+
+        let top = Math.max(0, rawTop);
+        const bottom = Math.min(containerHeight, rawBottom);
+
+        const minHeight = (isClampedTop || isClampedBottom) ? 12 : 4;
+        let height = bottom - top;
+
+        // Ensure the indicator is thick enough to easily grab/hover when clamped
+        if (height < minHeight) {
+            height = Math.min(minHeight, containerHeight); // Don't overflow tiny containers
+            if (isClampedBottom && !isClampedTop) {
+                top = Math.max(0, bottom - height);
+            }
+        }
 
         let hiddenRows = 0;
         if (isClampedTop) {
@@ -293,7 +304,8 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
 
     useMinimapDraw(canvasRef, containerRef, logs, minimapScrollTop, tick);
 
-    const isPopupVisible = isHoveringIndicator && (clampState.isClampedTop || clampState.isClampedBottom);
+    const isClamped = clampState.isClampedTop || clampState.isClampedBottom;
+    const isPopupVisible = isHoveringIndicator && isClamped;
     usePopupCanvasDraw(popupCanvasRef, logs, visibleLineRange.startIndex, visibleLineRange.endIndex, isPopupVisible);
 
     const { handleMouseDown, handleWheel } = useMinimapInteraction(containerRef, scrollElement, logs.length, minimapScrollTop, onScrollToIndex);
@@ -322,9 +334,12 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
             <div
                 ref={indicatorRef}
                 className={`
-                    absolute left-0 w-full bg-white/40 border-y pointer-events-auto
-                    transition-colors duration-150
-                    ${isHoveringIndicator ? 'border-white bg-white/50' : 'border-white/60'}
+                    absolute left-0 w-full border-y pointer-events-auto
+                    transition-all duration-200
+                    ${isClamped
+                        ? (isHoveringIndicator ? 'border-red-400 bg-red-500/40 shadow-[0_0_12px_rgba(239,68,68,0.4)]' : 'border-red-400/60 bg-red-500/20')
+                        : (isHoveringIndicator ? 'border-white bg-white/50' : 'border-white/60 bg-white/40')
+                    }
                 `}
                 style={{
                     top: 0,
