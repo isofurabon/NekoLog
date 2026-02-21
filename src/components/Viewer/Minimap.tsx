@@ -94,8 +94,6 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
         const top = visibleLineRange.startIndex * LINE_HEIGHT_PX;
         const bottom = (visibleLineRange.endIndex + 1) * LINE_HEIGHT_PX;
 
-        console.log(visibleLineRange);
-
         setViewportState({
             top,
             height: Math.max(bottom - top, 4),
@@ -121,11 +119,14 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
         const container = containerRef.current;
         if (!container) return;
 
+
         const jumpTo = (clientY: number) => {
             const rect = container.getBoundingClientRect();
             const pct = Math.max(0, Math.min((clientY - rect.top) / rect.height, 1));
+
+            const linesInRect = rect.height / LINE_HEIGHT_PX;
             // Map percentage to an item index and scroll there
-            const targetIndex = Math.floor(pct * logs.length);
+            const targetIndex = Math.floor(pct * linesInRect);
             virtualizer.scrollToIndex(targetIndex, { align: 'center' });
         };
 
