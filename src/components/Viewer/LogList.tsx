@@ -1,12 +1,14 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useVirtualizer, type Range, defaultRangeExtractor } from '@tanstack/react-virtual';
 import { useAtom, useAtomValue } from 'jotai';
-import { filteredLogsAtom, autoScrollAtom } from '@/store';
+import { filteredLogsAtom, autoScrollAtom, filterTextAtom, includedFieldsAtom } from '@/store';
 import { LogRow } from './LogRow.tsx';
 import { Minimap } from './Minimap.tsx';
 
 export const LogList = () => {
     const logs = useAtomValue(filteredLogsAtom);
+    const filterText = useAtomValue(filterTextAtom);
+    const includedFields = useAtomValue(includedFieldsAtom);
     const [autoScroll, setAutoScroll] = useAtom(autoScrollAtom);
     const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null);
     const lastInteractionTime = useRef(0);
@@ -93,6 +95,8 @@ export const LogList = () => {
                                 key={virtualRow.key}
                                 log={logs[virtualRow.index]}
                                 index={virtualRow.index}
+                                filterText={filterText}
+                                includedFields={includedFields}
                                 measureRef={rowVirtualizer.measureElement}
                                 style={{
                                     position: 'absolute',
