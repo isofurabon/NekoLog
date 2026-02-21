@@ -5,6 +5,8 @@ import { filteredLogsAtom, autoScrollAtom, filterTextAtom, includedFieldsAtom } 
 import { LogRow } from './LogRow.tsx';
 import { Minimap } from './Minimap.tsx';
 
+const SCROLL_THRESHOLD = 50;
+
 export const LogList = () => {
     const logs = useAtomValue(filteredLogsAtom);
     const filterText = useAtomValue(filterTextAtom);
@@ -50,7 +52,7 @@ export const LogList = () => {
         const { scrollTop, scrollHeight, clientHeight } = scrollElement;
         // Check if we are close to bottom
         const distanceToBottom = Math.abs(scrollHeight - scrollTop - clientHeight);
-        const isAtBottom = distanceToBottom < 50;
+        const isAtBottom = distanceToBottom < SCROLL_THRESHOLD;
 
         // Check if user interacted recently (within 200ms)
         const isUserInteracting = (Date.now() - lastInteractionTime.current) < 200;
