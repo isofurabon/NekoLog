@@ -147,18 +147,18 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
                 const targetIndex = Math.floor(clickY / LINE_HEIGHT_PX);
                 virtualizer.scrollToIndex(Math.max(0, Math.min(targetIndex, logs.length - 1)), { align: 'center' });
             } else {
-                // Determine layout height
-                const { height: viewportHeight } = viewportStateRef.current;
-                const maxIndicatorTop = rect.height - viewportHeight;
+                // When minimap overflows, we need to map the visual click 'clickY' 
+                // to the actual log index it represents.
 
-                if (maxIndicatorTop > 0) {
-                    let desiredTop = clickY - viewportHeight / 2;
-                    desiredTop = Math.max(0, Math.min(maxIndicatorTop, desiredTop));
-                    const scrollRatio = desiredTop / maxIndicatorTop;
+                // The minimap draws items offset by `minimapScrollTop`.
+                // So the visual `clickY` corresponds to an absolute pixel y-coordinate.
+                const { minimapScrollTop } = viewportStateRef.current;
+                const absoluteY = clickY + minimapScrollTop;
 
-                    const maxScrollTop = scrollElement.scrollHeight - scrollElement.clientHeight;
-                    scrollElement.scrollTop = scrollRatio * maxScrollTop;
-                }
+                // Map that absolute Y to a log line index
+                const targetIndex = Math.floor(absoluteY / LINE_HEIGHT_PX);
+
+                virtualizer.scrollToIndex(Math.max(0, Math.min(targetIndex, logs.length - 1)), { align: 'center' });
             }
         };
 
@@ -167,6 +167,7 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
         const onMove = (ev: MouseEvent) => {
             if (isDragging.current) jumpTo(ev.clientY);
         };
+
         const onUp = () => {
             isDragging.current = false;
             globalThis.removeEventListener('mousemove', onMove);
