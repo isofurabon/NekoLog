@@ -92,7 +92,7 @@ function App() {
                 <WavingText text="Ready to Inspect" />
               </div>
               <div className="space-y-1">
-                <p className="text-gray-400">Drop a log file here or connect to a device to start monitoring.</p>
+                <p className="text-gray-400">Drop a log file here or click "No Connected Device" above to start monitoring.</p>
               </div>
             </div>
           </div>
