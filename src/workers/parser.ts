@@ -3,6 +3,10 @@ import type { WorkerCommand, WorkerResponse, LogEntry, LogLevel } from '@/types'
 let buffer = '';
 const decoder = new TextDecoder();
 
+// Generate a unique worker ID to prefix log IDs (e.g., "a1b2c3d4")
+const workerId = self.crypto.randomUUID().slice(0, 8);
+let logCounter = 0;
+
 // Standard `threadtime` format regex
 // Date Time PID TID Level Tag: Message
 // Supports "PID TID", "PID/TID", "PID/ TID" etc.
@@ -72,7 +76,7 @@ self.onmessage = (event: MessageEvent<WorkerCommand>) => {
             const now = new Date();
             const timestamp = now.toISOString().slice(5, 23).replace('T', ' ');
             const overflowLog: LogEntry = {
-                id: self.crypto.randomUUID(),
+                id: workerId + '-' + (logCounter++),
                 timestamp,
                 pid: '?',
                 tid: '?',
@@ -105,7 +109,7 @@ self.onmessage = (event: MessageEvent<WorkerCommand>) => {
             if (parsed) {
                 newLogs.push({
                     ...parsed,
-                    id: self.crypto.randomUUID(),
+                    id: workerId + '-' + (logCounter++),
                 });
             }
         }
@@ -122,7 +126,7 @@ self.onmessage = (event: MessageEvent<WorkerCommand>) => {
             if (parsed) {
                 const log = {
                     ...parsed,
-                    id: self.crypto.randomUUID(),
+                    id: workerId + '-' + (logCounter++),
                 };
                 const response: WorkerResponse = { type: 'NEW_LOGS', payload: [log] };
                 self.postMessage(response);
