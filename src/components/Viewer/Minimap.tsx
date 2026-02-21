@@ -59,6 +59,11 @@ function useViewportState(
     totalSize: number
 ) {
     const [minimapScrollTop, setMinimapScrollTop] = useState(0);
+    const [clampState, setClampState] = useState<{ isClampedTop: boolean; isClampedBottom: boolean; hiddenRows: number }>({
+        isClampedTop: false,
+        isClampedBottom: false,
+        hiddenRows: 0
+    });
 
     const updateViewport = useCallback(() => {
         if (!scrollElement || logsCount === 0 || !containerRef.current) return;
@@ -71,15 +76,27 @@ function useViewportState(
         const maxMinimapScrollTop = Math.max(0, minimapScrollHeight - containerRef.current.clientHeight);
         const nextMinimapScrollTop = scrollRatio * maxMinimapScrollTop;
 
-        let top = visibleLineRange.startIndex * LINE_HEIGHT_PX - nextMinimapScrollTop;
-        let bottom = (visibleLineRange.endIndex + 1) * LINE_HEIGHT_PX - nextMinimapScrollTop;
+        const rawTop = visibleLineRange.startIndex * LINE_HEIGHT_PX - nextMinimapScrollTop;
+        const rawBottom = (visibleLineRange.endIndex + 1) * LINE_HEIGHT_PX - nextMinimapScrollTop;
 
         // Clamp visually so the indicator never pushes out of the container bounds
         const containerHeight = containerRef.current.clientHeight;
-        top = Math.max(0, top);
-        bottom = Math.min(containerHeight, bottom);
-
+        const top = Math.max(0, rawTop);
+        const bottom = Math.min(containerHeight, rawBottom);
         const height = Math.max(bottom - top, 4);
+
+        // Check for clamping
+        const isClampedTop = rawTop < 0;
+        const isClampedBottom = rawBottom > containerHeight;
+
+        let hiddenRows = 0;
+        if (isClampedTop) {
+            const minimapStartIdx = Math.floor(nextMinimapScrollTop / LINE_HEIGHT_PX);
+            hiddenRows = visibleLineRange.startIndex - minimapStartIdx; // Negative value
+        } else if (isClampedBottom) {
+            const minimapEndIdx = Math.floor((nextMinimapScrollTop + containerHeight) / LINE_HEIGHT_PX);
+            hiddenRows = visibleLineRange.endIndex - minimapEndIdx; // Positive value
+        }
 
         // Update DOM directly for maximum smoothness bypassing React render tick
         if (indicatorRef.current) {
@@ -88,6 +105,7 @@ function useViewportState(
         }
 
         setMinimapScrollTop(nextMinimapScrollTop);
+        setClampState({ isClampedTop, isClampedBottom, hiddenRows: Math.abs(hiddenRows) });
     }, [scrollElement, logsCount, visibleLineRange, containerRef, indicatorRef]);
 
     useEffect(() => {
@@ -108,7 +126,7 @@ function useViewportState(
         };
     }, [scrollElement, updateViewport, totalSize, tick]);
 
-    return minimapScrollTop;
+    return { minimapScrollTop, clampState };
 }
 
 /**
@@ -151,6 +169,49 @@ function useMinimapDraw(
             ctx.fillRect(0, y, width, itemHeight);
         }
     }, [canvasRef, containerRef, logs, tick, minimapScrollTop]);
+}
+
+/**
+ * Custom Hook: Handle rendering popup sub-canvas when zoomed out heavily
+ */
+function usePopupCanvasDraw(
+    popupCanvasRef: React.RefObject<HTMLCanvasElement | null>,
+    logs: LogEntry[],
+    startIndex: number,
+    endIndex: number,
+    isHoveringPopup: boolean
+) {
+    useEffect(() => {
+        const canvas = popupCanvasRef.current;
+        if (!canvas || logs.length === 0 || !isHoveringPopup) return;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const width = 120; // Fixed width for popup
+        const height = (endIndex - startIndex + 1) * LINE_HEIGHT_PX;
+
+        // Enforce maximum height for canvas safety, matching CSS
+        canvas.width = width;
+        canvas.height = Math.min(height, 200);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const itemHeight = LINE_HEIGHT_PX;
+
+        for (let i = startIndex; i <= endIndex; i++) {
+            if (i >= logs.length) break;
+            const log = logs[i];
+            ctx.fillStyle = LEVEL_COLORS[log.level] || '#a6adc8';
+
+            const y = (i - startIndex) * LINE_HEIGHT_PX;
+            if (y > 200) break; // Don't draw past max popout height
+
+            const lengthRatio = Math.min(1, Math.max(0.2, log.message.length / MAX_LOG_LENGTH));
+            const rectWidth = lengthRatio * width;
+
+            ctx.fillRect(0, y, rectWidth, itemHeight);
+        }
+    }, [popupCanvasRef, logs, startIndex, endIndex, isHoveringPopup]);
 }
 
 /**
@@ -221,13 +282,19 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const indicatorRef = useRef<HTMLDivElement>(null);
+    const popupCanvasRef = useRef<HTMLCanvasElement>(null);
+
     const [isHovering, setIsHovering] = useState(false);
+    const [isHoveringIndicator, setIsHoveringIndicator] = useState(false);
 
     // Modularized hook logic
     const tick = useResizeTick(containerRef);
-    const minimapScrollTop = useViewportState(scrollElement, containerRef, indicatorRef, logs.length, visibleLineRange, tick, totalSize);
+    const { minimapScrollTop, clampState } = useViewportState(scrollElement, containerRef, indicatorRef, logs.length, visibleLineRange, tick, totalSize);
 
     useMinimapDraw(canvasRef, containerRef, logs, minimapScrollTop, tick);
+
+    const isPopupVisible = isHoveringIndicator && (clampState.isClampedTop || clampState.isClampedBottom);
+    usePopupCanvasDraw(popupCanvasRef, logs, visibleLineRange.startIndex, visibleLineRange.endIndex, isPopupVisible);
 
     const { handleMouseDown, handleWheel } = useMinimapInteraction(containerRef, scrollElement, logs.length, minimapScrollTop, onScrollToIndex);
 
@@ -254,13 +321,41 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
             {/* Viewport Indicator */}
             <div
                 ref={indicatorRef}
-                className="absolute left-0 w-full bg-white/40 border-y border-white/60 pointer-events-none"
+                className={`
+                    absolute left-0 w-full bg-white/40 border-y pointer-events-auto
+                    transition-colors duration-150
+                    ${isHoveringIndicator ? 'border-white bg-white/50' : 'border-white/60'}
+                `}
                 style={{
                     top: 0,
                     // Use standard inline style for transform performance
                     willChange: 'transform, height'
                 }}
-            />
+                onMouseEnter={() => setIsHoveringIndicator(true)}
+                onMouseLeave={() => setIsHoveringIndicator(false)}
+            >
+                {/* Extruded Popup */}
+                {isPopupVisible && (
+                    <div
+                        className={`
+                            absolute right-full mr-2 pointer-events-none z-30
+                            bg-base/95 border border-white/10 rounded overflow-hidden shadow-2xl backdrop-blur-md
+                            flex flex-col
+                        `}
+                        style={{
+                            // Anchor top if clamped top, anchor bottom if clamped bottom
+                            top: clampState.isClampedTop ? 0 : 'auto',
+                            bottom: clampState.isClampedBottom ? 0 : 'auto',
+                            maxHeight: '200px'
+                        }}
+                    >
+                        <div className="text-xs px-2 py-1 border-b border-white/5 bg-white/5 text-subtext0 flex items-center gap-1 font-mono">
+                            {clampState.isClampedTop ? '↑' : '↓'} {clampState.hiddenRows} lines
+                        </div>
+                        <canvas ref={popupCanvasRef} className="opacity-90 max-h-full" />
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
