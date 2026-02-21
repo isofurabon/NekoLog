@@ -73,7 +73,7 @@ export const LogList = () => {
                     logs={logs}
                     scrollElement={scrollElement}
                     totalSize={rowVirtualizer.getTotalSize()}
-                    virtualizer={rowVirtualizer}
+                    onScrollToIndex={(index) => rowVirtualizer.scrollToIndex(index, { align: 'center' })}
                     visibleLineRange={visibleLineRangeRef.current}
                 />
                 <div

@@ -1,12 +1,11 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import type { LogEntry } from '@/types';
-import type { Virtualizer } from '@tanstack/react-virtual';
 
 interface MinimapProps {
     logs: LogEntry[];
     scrollElement: HTMLDivElement | null;
     totalSize: number;
-    virtualizer: Virtualizer<HTMLDivElement, Element>;
+    onScrollToIndex: (index: number) => void;
     visibleLineRange: { startIndex: number; endIndex: number };
 }
 
@@ -22,7 +21,7 @@ const LEVEL_COLORS: Record<string, string> = {
 const MAX_LOG_LENGTH = 200;
 const LINE_HEIGHT_PX = 4; // 4px per log line
 
-export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize, virtualizer, visibleLineRange }) => {
+export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize, onScrollToIndex, visibleLineRange }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [isHovering, setIsHovering] = useState(false);
@@ -126,7 +125,7 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
         updateViewport();
 
         return () => scrollElement.removeEventListener('scroll', onScroll);
-    }, [scrollElement, updateViewport, totalSize, tick, virtualizer.isScrolling]); // Add virtualizer.isScrolling to force updates during rapid scrolling
+    }, [scrollElement, updateViewport, totalSize, tick]);
 
     // Click / drag to scroll — reverse-map from minimap coordinate to item index
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -145,7 +144,7 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
             if (minimapScrollHeight <= rect.height) {
                 // If minimap content fits entirely, just jump safely by mapped line
                 const targetIndex = Math.floor(clickY / LINE_HEIGHT_PX);
-                virtualizer.scrollToIndex(Math.max(0, Math.min(targetIndex, logs.length - 1)), { align: 'center' });
+                onScrollToIndex(Math.max(0, Math.min(targetIndex, logs.length - 1)));
             } else {
                 // When minimap overflows, we need to map the visual click 'clickY' 
                 // to the actual log index it represents.
@@ -158,7 +157,7 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
                 // Map that absolute Y to a log line index
                 const targetIndex = Math.floor(absoluteY / LINE_HEIGHT_PX);
 
-                virtualizer.scrollToIndex(Math.max(0, Math.min(targetIndex, logs.length - 1)), { align: 'center' });
+                onScrollToIndex(Math.max(0, Math.min(targetIndex, logs.length - 1)));
             }
         };
 
