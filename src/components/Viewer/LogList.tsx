@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { useVirtualizer, type Range, defaultRangeExtractor } from '@tanstack/react-virtual';
 import { useAtom, useAtomValue } from 'jotai';
 import { filteredLogsAtom, autoScrollAtom, filterTextAtom, includedFieldsAtom } from '@/store';
+import { SCROLL_AT_BOTTOM_THRESHOLD } from '@/constants/scroll.ts';
 import { LogRow } from './LogRow.tsx';
 import { Minimap } from './Minimap.tsx';
 
@@ -50,7 +51,7 @@ export const LogList = () => {
         const { scrollTop, scrollHeight, clientHeight } = scrollElement;
         // Check if we are close to bottom
         const distanceToBottom = Math.abs(scrollHeight - scrollTop - clientHeight);
-        const isAtBottom = distanceToBottom < 50;
+        const isAtBottom = distanceToBottom < SCROLL_AT_BOTTOM_THRESHOLD;
 
         // Check if user interacted recently (within 200ms)
         const isUserInteracting = (Date.now() - lastInteractionTime.current) < 200;
