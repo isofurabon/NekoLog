@@ -1,144 +1,19 @@
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Smartphone, FileText, X } from 'lucide-react';
+import { Search, Smartphone } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { DeviceStatus } from './DeviceStatus.tsx';
 import { LogSearch } from './LogSearch.tsx';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { isViewingFileAtom, currentFileNameAtom, isLoadingFileAtom, loadingProgressAtom, cancelFileLoadAtom } from '@/store';
 import { LogActions } from './LogActions.tsx';
-import { MarqueeText } from './MarqueeText.tsx';
 import { useClickOutside } from '@/hooks/useClickOutside.ts';
 
-// --- Sub-components ---
-
-/** Hover hint overlay shared between file-mode and connected-mode collapsed states */
-const HoverHint = ({
-    icon: Icon,
-    text,
-    isHovered,
-    iconClassName,
-    textClassName,
-}: {
-    icon: typeof Search;
-    text: string;
-    isHovered: boolean;
-    iconClassName: string;
-    textClassName: string;
-}) => (
-    <AnimatePresence>
-        {isHovered && (
-            <motion.div
-                key="hint-overlay"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                className="absolute inset-0 flex items-center justify-center pointer-events-none px-4"
-            >
-                <div className="flex items-center gap-2 w-full">
-                    <Icon size={14} className={iconClassName} strokeWidth={3} />
-                    <div className="min-w-0 flex-1 overflow-hidden">
-                        <MarqueeText
-                            text={text}
-                            isHovered={isHovered}
-                            className={textClassName}
-                        />
-                    </div>
-                </div>
-            </motion.div>
-        )}
-    </AnimatePresence>
-);
-
-/** Loading state content — filename, percentage, and cancel button.
- *  The actual progress fill is rendered as a background layer in the main container. */
-const FileLoadingContent = ({
-    fileName,
-    progress,
-    onCancel,
-}: {
-    fileName: string | null;
-    progress: number;
-    onCancel: (e: React.MouseEvent) => void;
-}) => (
-    <motion.div
-        key="loading"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="w-full flex items-center gap-3 px-2 relative z-10"
-    >
-        <FileText size={18} className="text-blue-200 shrink-0" />
-        <div className="flex-1 flex items-center justify-between gap-2">
-            <span className="text-sm font-medium text-blue-100 truncate max-w-[400px]">
-                {fileName}
-            </span>
-            <span className="text-xs text-blue-200/80 tabular-nums shrink-0">
-                {progress}%
-            </span>
-        </div>
-        <button
-            type="button"
-            onClick={onCancel}
-            className="p-1 hover:bg-white/10 text-blue-200/60 hover:text-red-300 rounded-full transition-colors"
-        >
-            <X size={16} />
-        </button>
-    </motion.div>
-);
-
-/** Background fill that represents loading progress inside the control bar */
-const ProgressFill = ({ progress }: { progress: number }) => {
-    const mappedProgress = Math.pow(progress / 100, 0.5) * 100;
-
-    return (<motion.div
-        className="absolute inset-0 rounded-xl bg-blue-500/90"
-        initial={{ clipPath: 'inset(0 100% 0 0)' }}
-        animate={{ clipPath: `inset(0 ${100 - mappedProgress}% 0 0)` }}
-        transition={{ ease: 'linear', duration: 0.15 }}
-    />);
-};
-
-/** Collapsed file-mode state showing filename with hover-to-filter hint */
-const FileModeCollapsed = ({
-    fileName,
-    isHovered,
-    onExpand,
-}: {
-    fileName: string | null;
-    isHovered: boolean;
-    onExpand: (e?: React.MouseEvent) => void;
-}) => (
-    <div
-        className="relative w-full h-full flex items-center justify-center cursor-pointer"
-        onClick={onExpand}
-        data-testid="file-mode-click-area"
-    >
-        <motion.div
-            key="file-mode-info"
-            initial={{ opacity: 0 }}
-            animate={{
-                opacity: isHovered ? 0 : 1,
-                y: isHovered ? -10 : 0,
-            }}
-            exit={{ opacity: 0 }}
-            className="flex items-center gap-2 justify-center w-full"
-        >
-            <FileText size={14} className="text-blue-400 shrink-0" />
-            <span className="text-sm font-medium text-blue-100 truncate max-w-[400px]">
-                {fileName}
-            </span>
-        </motion.div>
-
-        <HoverHint
-            icon={Search}
-            text="Click to filter"
-            isHovered={isHovered}
-            iconClassName="text-gray-300 shrink-0"
-            textClassName="text-sm font-medium text-gray-300"
-        />
-    </div>
-);
+// Sub-components extracted to separate files
+import { HoverHint } from './HoverHint.tsx';
+import { FileLoadingContent } from './FileLoadingContent.tsx';
+import { ProgressFill } from './ProgressFill.tsx';
+import { FileModeCollapsed } from './FileModeCollapsed.tsx';
 
 // --- Main Component ---
 
