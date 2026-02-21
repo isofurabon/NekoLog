@@ -335,26 +335,27 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
                 onMouseLeave={() => setIsHoveringIndicator(false)}
             >
                 {/* Extruded Popup */}
-                {isPopupVisible && (
-                    <div
-                        className={`
-                            absolute right-full mr-2 pointer-events-none z-30
-                            bg-base/95 border border-white/10 rounded overflow-hidden shadow-2xl backdrop-blur-md
-                            flex flex-col
-                        `}
-                        style={{
-                            // Anchor top if clamped top, anchor bottom if clamped bottom
-                            top: clampState.isClampedTop ? 0 : 'auto',
-                            bottom: clampState.isClampedBottom ? 0 : 'auto',
-                            maxHeight: '200px'
-                        }}
-                    >
-                        <div className="text-xs px-2 py-1 border-b border-white/5 bg-white/5 text-subtext0 flex items-center gap-1 font-mono">
-                            {clampState.isClampedTop ? '↑' : '↓'} {clampState.hiddenRows} lines
-                        </div>
-                        <canvas ref={popupCanvasRef} className="opacity-90 max-h-full" />
+                <div
+                    className={`
+                        absolute right-full mr-2 pointer-events-none z-30
+                        bg-base/95 border border-white/10 rounded overflow-hidden shadow-2xl backdrop-blur-md
+                        flex flex-col origin-right
+                        transition-all duration-200 ease-out
+                        ${isPopupVisible ? 'opacity-100 scale-100 translate-x-0' : 'opacity-0 scale-95 translate-x-1'}
+                    `}
+                    style={{
+                        // Anchor top if clamped top, anchor bottom if clamped bottom
+                        // Default to top if neither so it doesn't jump during fade out
+                        top: clampState.isClampedBottom ? 'auto' : 0,
+                        bottom: clampState.isClampedBottom ? 0 : 'auto',
+                        maxHeight: '200px'
+                    }}
+                >
+                    <div className="text-xs px-2 py-1 border-b border-white/5 bg-white/5 text-subtext0 flex items-center gap-1 font-mono">
+                        {clampState.isClampedBottom ? '↓' : '↑'} {clampState.hiddenRows} lines
                     </div>
-                )}
+                    <canvas ref={popupCanvasRef} className="opacity-90 max-h-full" />
+                </div>
             </div>
         </div>
     );
