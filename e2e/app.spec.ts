@@ -11,13 +11,13 @@ test.describe('NekoLog Application', () => {
 
         // Check initial UI elements are present
         await expect(page.getByText('Start Demo Mode')).toBeVisible();
-        await expect(page.getByText('No Connected Device')).toBeVisible();
+        await expect(page.getByText('No Connected Device', { exact: true })).toBeVisible();
     });
 
     test('control bar displays correctly', async ({ page }) => {
         // Device status button should be visible
         const deviceStatus = page.locator('[data-testid="device-status"]').or(
-            page.getByText('No Connected Device')
+            page.getByText('No Connected Device', { exact: true })
         );
         await expect(deviceStatus).toBeVisible();
     });
