@@ -9,9 +9,28 @@ interface LogRowProps {
     index: number;
     style: React.CSSProperties; // For virtualization
     measureRef?: (element: HTMLElement | null) => void;
+    filterText?: string;
 }
 
-export const LogRow = memo(({ log, index, style, measureRef }: LogRowProps) => {
+const HighlightedText = ({ text, highlight }: { text: string; highlight?: string }) => {
+    if (!highlight || highlight.length === 0) return <>{text}</>;
+
+    const parts = text.split(new RegExp(`(${highlight})`, 'gi'));
+
+    return (
+        <>
+            {parts.map((part, i) =>
+                part.toLowerCase() === highlight.toLowerCase() ? (
+                    <mark key={i} className="bg-yellow-500/40 text-yellow-100 rounded-sm px-0.5">{part}</mark>
+                ) : (
+                    part
+                )
+            )}
+        </>
+    );
+};
+
+export const LogRow = memo(({ log, index, style, measureRef, filterText }: LogRowProps) => {
     const colorClass = getLevelColor(log.level);
     const hoverClass = getBgHoverColor(log.level);
 
@@ -39,12 +58,12 @@ export const LogRow = memo(({ log, index, style, measureRef }: LogRowProps) => {
 
             {/* Tag */}
             <span style={{ width: ColumnWidths.Tag, marginRight: '2ch' }} className="shrink-0 font-semibold truncate select-text text-right" title={log.tag}>
-                {log.tag}:
+                <HighlightedText text={log.tag} highlight={filterText} />:
             </span>
 
             {/* Message */}
             <span className="flex-1 whitespace-pre-wrap break-all select-text text-left leading-relaxed">
-                {log.message}
+                <HighlightedText text={log.message} highlight={filterText} />
             </span>
         </div>
     );
