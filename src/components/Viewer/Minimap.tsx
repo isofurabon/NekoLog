@@ -66,7 +66,17 @@ function useViewportState(
     });
 
     const updateViewport = useCallback(() => {
-        if (!scrollElement || logsCount === 0 || !containerRef.current) return;
+        if (!scrollElement || !containerRef.current) return;
+
+        if (logsCount === 0) {
+            if (indicatorRef.current) {
+                indicatorRef.current.style.transform = `translateY(0px)`;
+                indicatorRef.current.style.height = `0px`;
+            }
+            setMinimapScrollTop(0);
+            setClampState({ isClampedTop: false, isClampedBottom: false, hiddenRows: 0 });
+            return;
+        }
 
         const { clientHeight, scrollHeight, scrollTop } = scrollElement;
         const maxEditorScrollTop = Math.max(0, scrollHeight - clientHeight);
@@ -153,7 +163,7 @@ function useMinimapDraw(
     useEffect(() => {
         const canvas = canvasRef.current;
         const container = containerRef.current;
-        if (!canvas || !container || logs.length === 0) return;
+        if (!canvas || !container) return;
 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
@@ -162,6 +172,8 @@ function useMinimapDraw(
         canvas.width = clientWidth;
         canvas.height = clientHeight;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (logs.length === 0) return;
 
         const count = logs.length;
         const itemHeight = LINE_HEIGHT_PX;
@@ -194,7 +206,7 @@ function usePopupCanvasDraw(
 ) {
     useEffect(() => {
         const canvas = popupCanvasRef.current;
-        if (!canvas || logs.length === 0 || !isHoveringPopup) return;
+        if (!canvas || !isHoveringPopup) return;
 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
@@ -206,6 +218,8 @@ function usePopupCanvasDraw(
         canvas.width = width;
         canvas.height = Math.min(height, 200);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (logs.length === 0) return;
 
         const itemHeight = LINE_HEIGHT_PX;
 
