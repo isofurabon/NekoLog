@@ -21,32 +21,19 @@ const LEVEL_COLORS: Record<string, string> = {
 const MAX_LOG_LENGTH = 200;
 const LINE_HEIGHT_PX = 4; // 4px per log line
 
-export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize, onScrollToIndex, visibleLineRange }) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-    const [isHovering, setIsHovering] = useState(false);
-    const isDragging = useRef(false);
+/**
+ * Custom Hook: Handle container resize observation
+ */
+function useResizeTick(containerRef: React.RefObject<HTMLDivElement | null>) {
     const [tick, setTick] = useState(0);
 
-    const [viewportState, setViewportState] = useState({ top: 0, height: 0, minimapScrollTop: 0 });
-    const viewportStateRef = useRef(viewportState);
-
-    // Keep ref in sync for synchronous event handlers
-    useEffect(() => {
-        viewportStateRef.current = viewportState;
-    }, [viewportState]);
-
-    // Handle Resize to trigger redraw
     useEffect(() => {
         if (!containerRef.current) return;
 
         let animationFrameId: number;
         const observer = new ResizeObserver(() => {
-            // Throttle resize updates to animation frames
             cancelAnimationFrame(animationFrameId);
-            animationFrameId = requestAnimationFrame(() => {
-                setTick(t => t + 1);
-            });
+            animationFrameId = requestAnimationFrame(() => setTick(t => t + 1));
         });
 
         observer.observe(containerRef.current);
@@ -54,9 +41,68 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
             observer.disconnect();
             cancelAnimationFrame(animationFrameId);
         };
-    }, []);
+    }, [containerRef]);
 
-    // Draw the minimap — pure index-based coordinate system offset by minimapScrollTop
+    return tick;
+}
+
+/**
+ * Custom Hook: Maintain viewport dimensions and scale math
+ */
+function useViewportState(
+    scrollElement: HTMLDivElement | null,
+    containerRef: React.RefObject<HTMLDivElement | null>,
+    logsCount: number,
+    visibleLineRange: { startIndex: number; endIndex: number },
+    tick: number,
+    totalSize: number
+) {
+    const [viewportState, setViewportState] = useState({ top: 0, height: 0, minimapScrollTop: 0 });
+
+    const updateViewport = useCallback(() => {
+        if (!scrollElement || logsCount === 0 || !containerRef.current) return;
+
+        const { clientHeight, scrollHeight, scrollTop } = scrollElement;
+        const maxEditorScrollTop = Math.max(0, scrollHeight - clientHeight);
+        const scrollRatio = maxEditorScrollTop > 0 ? scrollTop / maxEditorScrollTop : 0;
+
+        const minimapScrollHeight = logsCount * LINE_HEIGHT_PX;
+        const maxMinimapScrollTop = Math.max(0, minimapScrollHeight - containerRef.current.clientHeight);
+        const minimapScrollTop = scrollRatio * maxMinimapScrollTop;
+
+        const top = visibleLineRange.startIndex * LINE_HEIGHT_PX - minimapScrollTop;
+        const bottom = (visibleLineRange.endIndex + 1) * LINE_HEIGHT_PX - minimapScrollTop;
+
+        setViewportState({
+            top,
+            height: Math.max(bottom - top, 4),
+            minimapScrollTop
+        });
+    }, [scrollElement, logsCount, visibleLineRange, containerRef]);
+
+    useEffect(() => {
+        if (!scrollElement) return;
+        const onScroll = () => requestAnimationFrame(updateViewport);
+        scrollElement.addEventListener('scroll', onScroll);
+
+        updateViewport();
+
+        return () => scrollElement.removeEventListener('scroll', onScroll);
+    }, [scrollElement, updateViewport, totalSize, tick]);
+
+    return viewportState;
+}
+
+/**
+ * Custom Hook: Render the canvas using the DOM and proportional state
+ */
+function useMinimapDraw(
+    canvasRef: React.RefObject<HTMLCanvasElement | null>,
+    containerRef: React.RefObject<HTMLDivElement | null>,
+    logs: LogEntry[],
+    minimapScrollTop: number,
+    tick: number
+) {
     useEffect(() => {
         const canvas = canvasRef.current;
         const container = containerRef.current;
@@ -72,7 +118,6 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
 
         const count = logs.length;
         const itemHeight = LINE_HEIGHT_PX;
-        const { minimapScrollTop } = viewportState;
 
         const startIndex = Math.max(0, Math.floor(minimapScrollTop / LINE_HEIGHT_PX));
         const endIndex = Math.min(count, Math.ceil((minimapScrollTop + clientHeight) / LINE_HEIGHT_PX));
@@ -82,53 +127,32 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
             ctx.fillStyle = LEVEL_COLORS[log.level] || '#a6adc8';
 
             const y = i * LINE_HEIGHT_PX - minimapScrollTop;
-
-            // Width proportional to message length
             const lengthRatio = Math.min(1, Math.max(0.2, log.message.length / MAX_LOG_LENGTH));
             const width = lengthRatio * clientWidth;
 
             ctx.fillRect(0, y, width, itemHeight);
         }
-    }, [logs, tick, viewportState.minimapScrollTop]);
+    }, [canvasRef, containerRef, logs, tick, minimapScrollTop]);
+}
 
-    // Viewport indicator — uses virtualizer.getVirtualItems() to find which
-    // indices are currently visible, then maps those to the same index-based
-    // coordinate system used for drawing items, factoring in the current scroll ratio.
-    const updateViewport = useCallback(() => {
-        if (!scrollElement || logs.length === 0 || !containerRef.current) return;
-
-        const { clientHeight, scrollHeight, scrollTop } = scrollElement;
-        const maxEditorScrollTop = Math.max(0, scrollHeight - clientHeight);
-        const scrollRatio = maxEditorScrollTop > 0 ? scrollTop / maxEditorScrollTop : 0;
-
-        const minimapScrollHeight = logs.length * LINE_HEIGHT_PX;
-        const maxMinimapScrollTop = Math.max(0, minimapScrollHeight - containerRef.current.clientHeight);
-        const minimapScrollTop = scrollRatio * maxMinimapScrollTop;
-
-        // Map indices to the same coordinate system as drawn items
-        const top = visibleLineRange.startIndex * LINE_HEIGHT_PX - minimapScrollTop;
-        const bottom = (visibleLineRange.endIndex + 1) * LINE_HEIGHT_PX - minimapScrollTop;
-
-        setViewportState({
-            top,
-            height: Math.max(bottom - top, 4),
-            minimapScrollTop
-        });
-    }, [scrollElement, logs.length, visibleLineRange]);
+/**
+ * Custom Hook: Bind interactions like Drag mapping and Scrolling
+ */
+function useMinimapInteraction(
+    containerRef: React.RefObject<HTMLDivElement | null>,
+    scrollElement: HTMLDivElement | null,
+    logsCount: number,
+    minimapScrollTop: number,
+    onScrollToIndex: (index: number) => void
+) {
+    const isDragging = useRef(false);
+    const scrollStateRef = useRef(minimapScrollTop);
 
     useEffect(() => {
-        if (!scrollElement) return;
-        const onScroll = () => requestAnimationFrame(updateViewport);
-        scrollElement.addEventListener('scroll', onScroll);
+        scrollStateRef.current = minimapScrollTop;
+    }, [minimapScrollTop]);
 
-        // Also update when virtual rules change (e.g. range changes due to window resize or data update)
-        updateViewport();
-
-        return () => scrollElement.removeEventListener('scroll', onScroll);
-    }, [scrollElement, updateViewport, totalSize, tick]);
-
-    // Click / drag to scroll — reverse-map from minimap coordinate to item index
-    const handleMouseDown = (e: React.MouseEvent) => {
+    const handleMouseDown = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
         isDragging.current = true;
 
@@ -139,25 +163,15 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
             const rect = container.getBoundingClientRect();
             const clickY = Math.max(0, Math.min(clientY - rect.top, rect.height));
 
-            const minimapScrollHeight = logs.length * LINE_HEIGHT_PX;
+            const minimapScrollHeight = logsCount * LINE_HEIGHT_PX;
 
             if (minimapScrollHeight <= rect.height) {
-                // If minimap content fits entirely, just jump safely by mapped line
                 const targetIndex = Math.floor(clickY / LINE_HEIGHT_PX);
-                onScrollToIndex(Math.max(0, Math.min(targetIndex, logs.length - 1)));
+                onScrollToIndex(Math.max(0, Math.min(targetIndex, logsCount - 1)));
             } else {
-                // When minimap overflows, we need to map the visual click 'clickY' 
-                // to the actual log index it represents.
-
-                // The minimap draws items offset by `minimapScrollTop`.
-                // So the visual `clickY` corresponds to an absolute pixel y-coordinate.
-                const { minimapScrollTop } = viewportStateRef.current;
-                const absoluteY = clickY + minimapScrollTop;
-
-                // Map that absolute Y to a log line index
+                const absoluteY = clickY + scrollStateRef.current;
                 const targetIndex = Math.floor(absoluteY / LINE_HEIGHT_PX);
-
-                onScrollToIndex(Math.max(0, Math.min(targetIndex, logs.length - 1)));
+                onScrollToIndex(Math.max(0, Math.min(targetIndex, logsCount - 1)));
             }
         };
 
@@ -175,13 +189,28 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
 
         globalThis.addEventListener('mousemove', onMove);
         globalThis.addEventListener('mouseup', onUp);
-    };
+    }, [containerRef, scrollElement, logsCount, onScrollToIndex]);
 
-    const handleWheel = (e: React.WheelEvent) => {
+    const handleWheel = useCallback((e: React.WheelEvent) => {
         if (!scrollElement) return;
-        // Pass the wheel event delta directly to the scroll element
         scrollElement.scrollTop += e.deltaY;
-    };
+    }, [scrollElement]);
+
+    return { handleMouseDown, handleWheel };
+}
+
+export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize, onScrollToIndex, visibleLineRange }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [isHovering, setIsHovering] = useState(false);
+
+    // Modularized hook logic
+    const tick = useResizeTick(containerRef);
+    const viewportState = useViewportState(scrollElement, containerRef, logs.length, visibleLineRange, tick, totalSize);
+
+    useMinimapDraw(canvasRef, containerRef, logs, viewportState.minimapScrollTop, tick);
+
+    const { handleMouseDown, handleWheel } = useMinimapInteraction(containerRef, scrollElement, logs.length, viewportState.minimapScrollTop, onScrollToIndex);
 
     return (
         <div
