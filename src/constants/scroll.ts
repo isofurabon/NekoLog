@@ -1,1 +1,0 @@
-export const SCROLL_AT_BOTTOM_THRESHOLD = 50;
