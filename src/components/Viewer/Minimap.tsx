@@ -7,6 +7,7 @@ interface MinimapProps {
     scrollElement: HTMLDivElement | null;
     totalSize: number;
     virtualizer: Virtualizer<HTMLDivElement, Element>;
+    visibleLineRange: { startIndex: number; endIndex: number };
 }
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -21,7 +22,7 @@ const LEVEL_COLORS: Record<string, string> = {
 const MAX_LOG_LENGTH = 200;
 const LINE_HEIGHT_PX = 4; // 4px per log line
 
-export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize, virtualizer }) => {
+export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize, virtualizer, visibleLineRange }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [isHovering, setIsHovering] = useState(false);
@@ -88,25 +89,18 @@ export const Minimap: React.FC<MinimapProps> = ({ logs, scrollElement, totalSize
 
     const updateViewport = useCallback(() => {
         if (!scrollElement || logs.length === 0 || !containerRef.current) return;
-        const minimapHeight = containerRef.current.clientHeight;
-
-        // Virtualizer items might be empty during initial render or rapid changes
-        const items = virtualizer.getVirtualItems();
-        if (items.length === 0) return;
-
-        // getVirtualItems() includes overscan, but that's close enough for minimap
-        const firstIdx = items[0].index;
-        const lastIdx = items[items.length - 1].index;
 
         // Map indices to the same coordinate system as drawn items
-        const top = (firstIdx / logs.length) * minimapHeight;
-        const bottom = ((lastIdx + 1) / logs.length) * minimapHeight;
+        const top = visibleLineRange.startIndex * LINE_HEIGHT_PX;
+        const bottom = (visibleLineRange.endIndex + 1) * LINE_HEIGHT_PX;
+
+        console.log(visibleLineRange);
 
         setViewportState({
             top,
             height: Math.max(bottom - top, 4),
         });
-    }, [scrollElement, logs.length, virtualizer, virtualizer.getVirtualItems()]); // Depend on getVirtualItems() result indirectly via virtualizer state changes
+    }, [scrollElement, logs.length, visibleLineRange]);
 
     useEffect(() => {
         if (!scrollElement) return;
