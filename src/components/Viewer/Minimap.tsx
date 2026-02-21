@@ -71,8 +71,14 @@ function useViewportState(
         const maxMinimapScrollTop = Math.max(0, minimapScrollHeight - containerRef.current.clientHeight);
         const nextMinimapScrollTop = scrollRatio * maxMinimapScrollTop;
 
-        const top = visibleLineRange.startIndex * LINE_HEIGHT_PX - nextMinimapScrollTop;
-        const bottom = (visibleLineRange.endIndex + 1) * LINE_HEIGHT_PX - nextMinimapScrollTop;
+        let top = visibleLineRange.startIndex * LINE_HEIGHT_PX - nextMinimapScrollTop;
+        let bottom = (visibleLineRange.endIndex + 1) * LINE_HEIGHT_PX - nextMinimapScrollTop;
+
+        // Clamp visually so the indicator never pushes out of the container bounds
+        const containerHeight = containerRef.current.clientHeight;
+        top = Math.max(0, top);
+        bottom = Math.min(containerHeight, bottom);
+
         const height = Math.max(bottom - top, 4);
 
         // Update DOM directly for maximum smoothness bypassing React render tick
