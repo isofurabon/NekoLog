@@ -1,5 +1,5 @@
-import { useRef, useEffect, useState } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
+import { useRef, useEffect, useState, useCallback } from 'react';
+import { useVirtualizer, type Range, defaultRangeExtractor } from '@tanstack/react-virtual';
 import { useAtom, useAtomValue } from 'jotai';
 import { filteredLogsAtom, autoScrollAtom, filterTextAtom, includedFieldsAtom } from '@/store';
 import { LogRow } from './LogRow.tsx';
@@ -13,11 +13,22 @@ export const LogList = () => {
     const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null);
     const lastInteractionTime = useRef(0);
 
+    const visibleLineRangeRef = useRef({ startIndex: 0, endIndex: 0 });
+
     const rowVirtualizer = useVirtualizer({
         count: logs.length,
         getScrollElement: () => scrollElement,
         estimateSize: () => 24, // Estimate row height
         overscan: 10,
+
+        rangeExtractor: useCallback((range: Range) => {
+            visibleLineRangeRef.current = {
+                startIndex: range.startIndex,
+                endIndex: range.endIndex,
+            };
+
+            return defaultRangeExtractor(range);
+        }, []),
     });
 
     const markInteraction = () => {
@@ -64,7 +75,8 @@ export const LogList = () => {
                     logs={logs}
                     scrollElement={scrollElement}
                     totalSize={rowVirtualizer.getTotalSize()}
-                    virtualizer={rowVirtualizer}
+                    onScrollToIndex={(index) => rowVirtualizer.scrollToIndex(index, { align: 'center' })}
+                    visibleLineRange={visibleLineRangeRef.current}
                 />
                 <div
                     ref={setScrollElement}
