@@ -4,6 +4,7 @@ import { getLevelColor, getBgHoverColor } from '@/utils/color.ts';
 import { ColumnWidths } from '@/constants/layout.ts';
 import type { SearchableField } from '@/constants/search.ts';
 import { clsx } from 'clsx';
+import { HighlightedText } from '@/components/HighlightedText.tsx';
 
 interface LogRowProps {
     log: LogEntry;
@@ -13,24 +14,6 @@ interface LogRowProps {
     filterText?: string;
     includedFields?: SearchableField[];
 }
-
-const HighlightedText = ({ text, highlight }: { text: string; highlight?: string }) => {
-    if (!highlight || highlight.length === 0) return <>{text}</>;
-
-    const parts = text.split(new RegExp(`(${highlight})`, 'gi'));
-
-    return (
-        <>
-            {parts.map((part, i) =>
-                part.toLowerCase() === highlight.toLowerCase() ? (
-                    <mark key={i} className="bg-yellow-500/40 text-yellow-100 rounded-sm px-0.5">{part}</mark>
-                ) : (
-                    part
-                )
-            )}
-        </>
-    );
-};
 
 export const LogRow = memo(({ log, index, style, measureRef, filterText, includedFields }: LogRowProps) => {
     const colorClass = getLevelColor(log.level);
