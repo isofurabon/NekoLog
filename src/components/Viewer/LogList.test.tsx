@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Provider, createStore } from 'jotai';
+import type { VirtualItem } from '@tanstack/react-virtual';
 import { LogList } from './LogList.tsx';
 import { logsAtom, filterTextAtom, autoScrollAtom, includedFieldsAtom } from '@/store';
 import type { LogEntry } from '@/types';
@@ -16,10 +17,17 @@ vi.mock('./Minimap.tsx', () => ({
 }));
 
 // Mock react-virtual
-const mockScrollToIndex = vi.fn();
-const mockGetTotalSize = vi.fn(() => 100);
-const mockGetVirtualItems = vi.fn(() => []);
-const mockMeasureElement = vi.fn();
+const {
+    mockScrollToIndex,
+    mockGetTotalSize,
+    mockGetVirtualItems,
+    mockMeasureElement,
+} = vi.hoisted(() => ({
+    mockScrollToIndex: vi.fn(),
+    mockGetTotalSize: vi.fn(() => 100),
+    mockGetVirtualItems: vi.fn(() => []),
+    mockMeasureElement: vi.fn(),
+}));
 
 vi.mock('@tanstack/react-virtual', async (importOriginal) => {
     const actual = await importOriginal<typeof import('@tanstack/react-virtual')>();
@@ -79,10 +87,11 @@ describe('LogList Component', () => {
         const logs = [createMockLog({ message: 'Log 1' }), createMockLog({ message: 'Log 2' })];
         store.set(logsAtom, logs);
 
-        mockGetVirtualItems.mockReturnValue([
+        const mockVirtualItems: Partial<VirtualItem>[] = [
             { key: '0', index: 0, start: 0, end: 24, size: 24 },
             { key: '1', index: 1, start: 24, end: 48, size: 24 },
-        ] as any);
+        ];
+        mockGetVirtualItems.mockReturnValue(mockVirtualItems as VirtualItem[]);
 
         renderWithProvider();
 
@@ -127,9 +136,9 @@ describe('LogList Component', () => {
         fireEvent.wheel(container.firstChild as Element);
 
         // Simulate scroll event where user scrolls up (not at bottom)
-        Object.defineProperty(scrollContainer, 'scrollTop', { value: 0 });
-        Object.defineProperty(scrollContainer, 'scrollHeight', { value: 2000 });
-        Object.defineProperty(scrollContainer, 'clientHeight', { value: 500 });
+        Object.defineProperty(scrollContainer, 'scrollTop', { value: 0, configurable: true });
+        Object.defineProperty(scrollContainer, 'scrollHeight', { value: 2000, configurable: true });
+        Object.defineProperty(scrollContainer, 'clientHeight', { value: 500, configurable: true });
 
         act(() => {
             fireEvent.scroll(scrollContainer);
@@ -152,9 +161,9 @@ describe('LogList Component', () => {
         fireEvent.wheel(container.firstChild as Element);
 
         // Distance to bottom < SCROLL_THRESHOLD (50)
-        Object.defineProperty(scrollContainer, 'scrollTop', { value: 1460 });
-        Object.defineProperty(scrollContainer, 'scrollHeight', { value: 2000 });
-        Object.defineProperty(scrollContainer, 'clientHeight', { value: 500 }); // Distance is 40
+        Object.defineProperty(scrollContainer, 'scrollTop', { value: 1460, configurable: true });
+        Object.defineProperty(scrollContainer, 'scrollHeight', { value: 2000, configurable: true });
+        Object.defineProperty(scrollContainer, 'clientHeight', { value: 500, configurable: true }); // Distance is 40
 
         act(() => {
             fireEvent.scroll(scrollContainer);
