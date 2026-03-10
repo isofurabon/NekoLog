@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/serve-static';
 import open from 'open';
-import { fromFileUrl, join, resolve, normalize, sep } from '@std/path';
+import { fromFileUrl, resolve, sep } from '@std/path';
 
 const app = new Hono();
 
@@ -21,9 +21,9 @@ const readInternalFile = async (path: string) => {
         // Resolve the base directory (where this script is located)
         const baseDir = resolve(fromFileUrl(import.meta.url), '..');
 
-        // Resolve the requested path relative to the base directory
-        // and normalize it to remove any '..' or '.' segments.
-        const resolvedPath = normalize(resolve(baseDir, path));
+        // Resolve the requested path relative to the base directory.
+        // resolve() also normalizes the path, removing '..' or '.' segments.
+        const resolvedPath = resolve(baseDir, path);
 
         // Security check: Ensure the resolved path is within the base directory.
         // This prevents path traversal attacks.
