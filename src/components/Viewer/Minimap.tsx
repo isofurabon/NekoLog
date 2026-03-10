@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import type { LogEntry } from '@/types';
+import { calculateViewportBounds } from './minimapMath';
 
 interface MinimapProps {
     logs: LogEntry[];
@@ -68,65 +69,34 @@ function useViewportState(
     const updateViewport = useCallback(() => {
         if (!scrollElement || !containerRef.current) return;
 
-        if (logsCount === 0) {
-            if (indicatorRef.current) {
-                indicatorRef.current.style.transform = `translateY(0px)`;
-                indicatorRef.current.style.height = `0px`;
-            }
-            setMinimapScrollTop(0);
-            setClampState({ isClampedTop: false, isClampedBottom: false, hiddenRows: 0 });
-            return;
-        }
-
-        const { clientHeight, scrollHeight, scrollTop } = scrollElement;
-        const maxEditorScrollTop = Math.max(0, scrollHeight - clientHeight);
-        const scrollRatio = maxEditorScrollTop > 0 ? scrollTop / maxEditorScrollTop : 0;
-
-        const minimapScrollHeight = logsCount * LINE_HEIGHT_PX;
-        const maxMinimapScrollTop = Math.max(0, minimapScrollHeight - containerRef.current.clientHeight);
-        const nextMinimapScrollTop = scrollRatio * maxMinimapScrollTop;
-
-        const rawTop = visibleLineRange.startIndex * LINE_HEIGHT_PX - nextMinimapScrollTop;
-        const rawBottom = (visibleLineRange.endIndex + 1) * LINE_HEIGHT_PX - nextMinimapScrollTop;
-
-        // Clamp visually so the indicator never pushes out of the container bounds
-        const containerHeight = containerRef.current.clientHeight;
-
-        // Check for clamping
-        const isClampedTop = rawTop < 0;
-        const isClampedBottom = rawBottom > containerHeight;
-
-        let top = Math.max(0, rawTop);
-        const bottom = Math.min(containerHeight, rawBottom);
-
-        const minHeight = (isClampedTop || isClampedBottom) ? 12 : 4;
-        let height = bottom - top;
-
-        // Ensure the indicator is thick enough to easily grab/hover when clamped
-        if (height < minHeight) {
-            height = Math.min(minHeight, containerHeight); // Don't overflow tiny containers
-            if (isClampedBottom && !isClampedTop) {
-                top = Math.max(0, bottom - height);
-            }
-        }
-
-        let hiddenRows = 0;
-        if (isClampedTop) {
-            const minimapStartIdx = Math.floor(nextMinimapScrollTop / LINE_HEIGHT_PX);
-            hiddenRows = visibleLineRange.startIndex - minimapStartIdx; // Negative value
-        } else if (isClampedBottom) {
-            const minimapEndIdx = Math.floor((nextMinimapScrollTop + containerHeight) / LINE_HEIGHT_PX);
-            hiddenRows = visibleLineRange.endIndex - minimapEndIdx; // Positive value
-        }
+        const bounds = calculateViewportBounds({
+            scrollElementHeight: scrollElement.clientHeight,
+            scrollElementScrollHeight: scrollElement.scrollHeight,
+            scrollElementScrollTop: scrollElement.scrollTop,
+            containerHeight: containerRef.current.clientHeight,
+            logsCount,
+            visibleStartIndex: visibleLineRange.startIndex,
+            visibleEndIndex: visibleLineRange.endIndex,
+            lineHeightPx: LINE_HEIGHT_PX,
+        });
 
         // Update DOM directly for maximum smoothness bypassing React render tick
         if (indicatorRef.current) {
-            indicatorRef.current.style.transform = `translateY(${top}px)`;
-            indicatorRef.current.style.height = `${height}px`;
+            if (logsCount === 0) {
+                indicatorRef.current.style.transform = `translateY(0px)`;
+                indicatorRef.current.style.height = `0px`;
+            } else {
+                indicatorRef.current.style.transform = `translateY(${bounds.top}px)`;
+                indicatorRef.current.style.height = `${bounds.height}px`;
+            }
         }
 
-        setMinimapScrollTop(nextMinimapScrollTop);
-        setClampState({ isClampedTop, isClampedBottom, hiddenRows: Math.abs(hiddenRows) });
+        setMinimapScrollTop(bounds.minimapScrollTop);
+        setClampState({
+            isClampedTop: bounds.isClampedTop,
+            isClampedBottom: bounds.isClampedBottom,
+            hiddenRows: bounds.hiddenRows,
+        });
     }, [scrollElement, logsCount, visibleLineRange, containerRef, indicatorRef]);
 
     useEffect(() => {
