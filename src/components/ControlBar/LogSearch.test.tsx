@@ -157,7 +157,7 @@ describe('LogSearch Component', () => {
             const inputRef = React.createRef<HTMLInputElement>();
 
             // Initialize with only 'message' included
-            store.set(includedFieldsAtom, ['message']);
+            store.set(includedFieldsAtom, new Set(['message']));
 
             renderWithProvider(<LogSearch onClose={vi.fn()} inputRef={inputRef} />, store);
 
@@ -167,14 +167,14 @@ describe('LogSearch Component', () => {
             // Toggle 'tag' on
             const tagLabel = screen.getByText('tag');
             await user.click(tagLabel);
-            expect(store.get(includedFieldsAtom)).toContain('tag');
-            expect(store.get(includedFieldsAtom)).toContain('message');
+            expect(store.get(includedFieldsAtom).has('tag')).toBe(true);
+            expect(store.get(includedFieldsAtom).has('message')).toBe(true);
 
             // Toggle 'message' off
             const messageLabel = screen.getByText('message');
             await user.click(messageLabel);
-            expect(store.get(includedFieldsAtom)).not.toContain('message');
-            expect(store.get(includedFieldsAtom)).toContain('tag');
+            expect(store.get(includedFieldsAtom).has('message')).toBe(false);
+            expect(store.get(includedFieldsAtom).has('tag')).toBe(true);
         });
 
         it('closes menu when clicking outside', async () => {

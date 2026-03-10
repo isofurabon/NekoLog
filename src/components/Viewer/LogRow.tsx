@@ -12,7 +12,7 @@ interface LogRowProps {
     style: React.CSSProperties; // For virtualization
     measureRef?: (element: HTMLElement | null) => void;
     filterText?: string;
-    includedFields?: SearchableField[];
+    includedFields?: Set<SearchableField>;
 }
 
 export const LogRow = memo(({ log, index, style, measureRef, filterText, includedFields }: LogRowProps) => {
@@ -32,28 +32,28 @@ export const LogRow = memo(({ log, index, style, measureRef, filterText, include
         >
             {/* Timestamp */}
             <span style={{ width: ColumnWidths.Timestamp }} className="shrink-0 select-text text-left line-clamp-1">
-                <HighlightedText text={String(log.timestamp)} highlight={includedFields?.includes('timestamp') ? filterText : undefined} />
+                <HighlightedText text={String(log.timestamp)} highlight={includedFields?.has('timestamp') ? filterText : undefined} />
             </span>
 
             {/* PID/TID */}
             <span style={{ width: ColumnWidths.PidTid }} className="shrink-0 select-text hidden text-left sm:inline-block">
-                <HighlightedText text={String(log.pid)} highlight={includedFields?.includes('pid') ? filterText : undefined} />/
-                <HighlightedText text={String(log.tid)} highlight={includedFields?.includes('tid') ? filterText : undefined} />
+                <HighlightedText text={String(log.pid)} highlight={includedFields?.has('pid') ? filterText : undefined} />/
+                <HighlightedText text={String(log.tid)} highlight={includedFields?.has('tid') ? filterText : undefined} />
             </span>
 
             {/* Level */}
             <span style={{ width: ColumnWidths.Level }} className="shrink-0 font-bold select-none">
-                <HighlightedText text={String(log.level)} highlight={includedFields?.includes('level') ? filterText : undefined} />
+                <HighlightedText text={String(log.level)} highlight={includedFields?.has('level') ? filterText : undefined} />
             </span>
 
             {/* Tag */}
             <span style={{ width: ColumnWidths.Tag, marginRight: '2ch' }} className="shrink-0 font-semibold truncate select-text text-right" title={log.tag}>
-                <HighlightedText text={String(log.tag)} highlight={includedFields?.includes('tag') ? filterText : undefined} />:
+                <HighlightedText text={String(log.tag)} highlight={includedFields?.has('tag') ? filterText : undefined} />:
             </span>
 
             {/* Message */}
             <span className="flex-1 whitespace-pre-wrap break-all select-text text-left leading-relaxed">
-                <HighlightedText text={String(log.message)} highlight={includedFields?.includes('message') ? filterText : undefined} />
+                <HighlightedText text={String(log.message)} highlight={includedFields?.has('message') ? filterText : undefined} />
             </span>
         </div>
     );

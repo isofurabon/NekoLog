@@ -85,4 +85,36 @@ describe('LogRow Component', () => {
 
         expect(screen.getByText('com.app.MyClass$Inner:')).toBeInTheDocument();
     });
+
+    it('highlights text when field is included', () => {
+        const log = createMockLog({ message: 'Hello World' });
+        render(
+            <LogRow
+                log={log}
+                index={0}
+                style={defaultStyle}
+                filterText="Hello"
+                includedFields={new Set(['message'])}
+            />
+        );
+
+        const highlighted = screen.getByText('Hello');
+        expect(highlighted).toHaveClass('bg-yellow-500/30');
+    });
+
+    it('does not highlight text when field is not included', () => {
+        const log = createMockLog({ message: 'Hello World' });
+        render(
+            <LogRow
+                log={log}
+                index={0}
+                style={defaultStyle}
+                filterText="Hello"
+                includedFields={new Set(['tag'])}
+            />
+        );
+
+        expect(screen.queryByText('Hello')).not.toBeInTheDocument();
+        expect(screen.getByText('Hello World')).toBeInTheDocument();
+    });
 });

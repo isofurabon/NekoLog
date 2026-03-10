@@ -15,7 +15,7 @@ export const autoScrollAtom = atom<boolean>(true);
 export const isRecordingAtom = atom<boolean>(false);
 
 // Included Search Fields (fields to search in)
-export const includedFieldsAtom = atom<SearchableField[]>(['message']);
+export const includedFieldsAtom = atom<Set<SearchableField>>(new Set(['message']));
 
 // Derived Filtered Logs
 export const filteredLogsAtom = atom((get) => {
@@ -28,20 +28,25 @@ export const filteredLogsAtom = atom((get) => {
     const escapedFilterText = filterText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(escapedFilterText, 'i');
 
-    return logs.filter(log =>
-        includedFields.some(field => {
+    return logs.filter(log => {
+        for (const field of includedFields) {
             const value = log[field as keyof LogEntry];
             // For level, use exact match
             if (field === 'level') {
-                return (typeof value === 'string' ? value : String(value)).toLowerCase() === filterText;
+                if ((typeof value === 'string' ? value : String(value)).toLowerCase() === filterText) {
+                    return true;
+                }
+                continue;
             }
 
             if (typeof value === 'string') {
-                return regex.test(value);
+                if (regex.test(value)) return true;
+            } else if (regex.test(String(value))) {
+                return true;
             }
-            return regex.test(String(value));
-        })
-    );
+        }
+        return false;
+    });
 });
 
 // File Mode State

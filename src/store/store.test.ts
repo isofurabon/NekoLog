@@ -40,7 +40,7 @@ describe('Store Atoms', () => {
 
             store.set(logsAtom, logs);
             store.set(filterTextAtom, 'hello');
-            store.set(includedFieldsAtom, ['message']);
+            store.set(includedFieldsAtom, new Set(['message']));
 
             const filtered = store.get(filteredLogsAtom);
             expect(filtered).toHaveLength(2);
@@ -57,7 +57,7 @@ describe('Store Atoms', () => {
 
             store.set(logsAtom, logs);
             store.set(filterTextAtom, 'activity');
-            store.set(includedFieldsAtom, ['tag']);
+            store.set(includedFieldsAtom, new Set(['tag']));
 
             const filtered = store.get(filteredLogsAtom);
             expect(filtered).toHaveLength(2);
@@ -73,7 +73,7 @@ describe('Store Atoms', () => {
 
             store.set(logsAtom, logs);
             store.set(filterTextAtom, 'e');
-            store.set(includedFieldsAtom, ['level']);
+            store.set(includedFieldsAtom, new Set(['level']));
 
             const filtered = store.get(filteredLogsAtom);
             expect(filtered).toHaveLength(2);
@@ -90,7 +90,7 @@ describe('Store Atoms', () => {
 
             store.set(logsAtom, logs);
             store.set(filterTextAtom, 'search');
-            store.set(includedFieldsAtom, ['tag', 'message']);
+            store.set(includedFieldsAtom, new Set(['tag', 'message']));
 
             const filtered = store.get(filteredLogsAtom);
             expect(filtered).toHaveLength(2);
@@ -107,7 +107,7 @@ describe('Store Atoms', () => {
 
             store.set(logsAtom, logs);
             store.set(filterTextAtom, 'CASE');
-            store.set(includedFieldsAtom, ['message']);
+            store.set(includedFieldsAtom, new Set(['message']));
 
             const filtered = store.get(filteredLogsAtom);
             expect(filtered).toHaveLength(3);

@@ -80,17 +80,21 @@ const FilterMenu = () => {
     const menuRef = React.useRef<HTMLDivElement>(null);
 
     const toggleField = useCallback((field: SearchableField) => {
-        setIncludedFields((prev: SearchableField[]) =>
-            prev.includes(field)
-                ? prev.filter((f: SearchableField) => f !== field)
-                : [...prev, field]
-        );
+        setIncludedFields((prev: Set<SearchableField>) => {
+            const next = new Set(prev);
+            if (next.has(field)) {
+                next.delete(field);
+            } else {
+                next.add(field);
+            }
+            return next;
+        });
     }, [setIncludedFields]);
 
     const handleClose = useCallback(() => setIsOpen(false), []);
     useClickOutside(menuRef, handleClose, isOpen);
 
-    const isActive = includedFields.length > 0;
+    const isActive = includedFields.size > 0;
 
     return (
         <div className="relative flex items-center" ref={menuRef}>
@@ -118,7 +122,7 @@ const FilterMenu = () => {
                         onMouseDown={(e) => e.preventDefault()}
                     >
                         {SEARCHABLE_FIELDS.map(field => {
-                            const isIncluded = includedFields.includes(field);
+                            const isIncluded = includedFields.has(field);
                             return (
                                 <label key={field} className="flex items-center px-3 py-2 hover:bg-surface1/50 cursor-pointer transition-colors group">
                                     <div className={clsx(

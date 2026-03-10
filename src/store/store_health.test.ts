@@ -29,7 +29,7 @@ describe('Store Atoms - Robustness', () => {
 
         store.set(logsAtom, logs);
         store.set(filterTextAtom, '123'); // Should match '12345'
-        store.set(includedFieldsAtom, ['message']);
+        store.set(includedFieldsAtom, new Set(['message']));
 
         const filtered = store.get(filteredLogsAtom);
         expect(filtered).toHaveLength(1);
@@ -48,7 +48,7 @@ describe('Store Atoms - Robustness', () => {
 
         store.set(logsAtom, logs);
         store.set(filterTextAtom, 'null'); // Should match 'null' if String(null) is used
-        store.set(includedFieldsAtom, ['message']);
+        store.set(includedFieldsAtom, new Set(['message']));
 
         const filtered = store.get(filteredLogsAtom);
         expect(filtered).toHaveLength(1);
