@@ -14,13 +14,12 @@ export const LOG_REGEX = /^(\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\.\d{3})\s+([0-9?]+)(?
 
 
 
-export function parseLogLine(line: string): Omit<LogEntry, 'id'> | null {
+export function parseLogLine(line: string, fallbackTimestamp?: string): Omit<LogEntry, 'id'> | null {
     if (!line.trim()) return null;
 
     // Too long line check (e.g., > 10000 chars)
     if (line.length > 10000) {
-        const now = new Date();
-        const timestamp = now.toISOString().slice(5, 23).replace('T', ' ');
+        const timestamp = fallbackTimestamp ?? new Date().toISOString().slice(5, 23).replace('T', ' ');
         return {
             timestamp,
             pid: '?',
@@ -46,8 +45,7 @@ export function parseLogLine(line: string): Omit<LogEntry, 'id'> | null {
         // Fallback for lines that don't match (e.g. stack traces often don't have headers)
         // Treat as INFO log with the raw line as message, but only populate message field
         // Others get default values
-        const now = new Date();
-        const timestamp = now.toISOString().slice(5, 23).replace('T', ' ');
+        const timestamp = fallbackTimestamp ?? new Date().toISOString().slice(5, 23).replace('T', ' ');
         return {
             timestamp,
             pid: '?',
@@ -104,8 +102,11 @@ self.onmessage = (event: MessageEvent<WorkerCommand>) => {
 
         const newLogs: LogEntry[] = [];
 
+        // Pre-compute fallback timestamp to avoid excessive Date instantiations per chunk
+        const fallbackTimestamp = new Date().toISOString().slice(5, 23).replace('T', ' ');
+
         for (const line of lines) {
-            const parsed = parseLogLine(line);
+            const parsed = parseLogLine(line, fallbackTimestamp);
             if (parsed) {
                 newLogs.push({
                     ...parsed,
