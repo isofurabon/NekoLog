@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/serve-static';
 import open from 'open';
+import { fromFileUrl, join, resolve, normalize, sep } from '@std/path';
 
 const app = new Hono();
 
@@ -17,8 +18,21 @@ app.use('*', async (c, next) => {
 // This ensures paths are resolved relative to the script, not the CWD.
 const readInternalFile = async (path: string) => {
     try {
-        const url = new URL(path, import.meta.url);
-        return await Deno.readFile(url);
+        // Resolve the base directory (where this script is located)
+        const baseDir = resolve(fromFileUrl(import.meta.url), '..');
+
+        // Resolve the requested path relative to the base directory
+        // and normalize it to remove any '..' or '.' segments.
+        const resolvedPath = normalize(resolve(baseDir, path));
+
+        // Security check: Ensure the resolved path is within the base directory.
+        // This prevents path traversal attacks.
+        if (!resolvedPath.startsWith(baseDir + sep) && resolvedPath !== baseDir) {
+            console.warn(`Blocked potential path traversal attempt: ${path}`);
+            return null;
+        }
+
+        return await Deno.readFile(resolvedPath);
     } catch (_e) {
         return null;
     }
