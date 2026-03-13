@@ -84,6 +84,7 @@ export const LogList = () => {
                     ref={setScrollElement}
                     className="h-full w-full overflow-y-auto scrollbar-none px-2"
                     onScroll={handleScroll}
+                    data-testid="log-list-scroll-container"
                 >
                     <div
                         style={{
