@@ -3,9 +3,9 @@
 # Define all versions in one place for easy management
 # ==========================================
 ARG NODE_VERSION=22-bookworm
-ARG DENO_VERSION=2.6.8
-ARG PLAYWRIGHT_VERSION=v1.58.0-noble
-ARG DAGGER_VERSION=v0.19.11
+ARG DENO_VERSION=2.9.6
+ARG PLAYWRIGHT_VERSION=v1.63.0-noble
+ARG DAGGER_VERSION=v0.21.9
 
 # ==========================================
 # 2. SOURCE STAGES ( The "Getter" Pattern )
