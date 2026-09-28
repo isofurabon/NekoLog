@@ -3,6 +3,6 @@
         "experimentalDecorators": true
     },
     "imports": {
-        "@dagger.io/dagger": "npm:@dagger.io/dagger@0.19.11"
+        "@dagger.io/dagger": "npm:@dagger.io/dagger@0.21.9"
     }
 }
